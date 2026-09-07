@@ -7,15 +7,17 @@ end entity;                       -- a testbench has no ports
 
 architecture sim of tb_parallel_to_serial is
     constant C_CLK_PERIOD : time := 20 ns;   -- 50 MHz reference clock
-    
+    constant C_DATA_BITS : positive := 4;
+
     signal clk : std_logic := '0';
     signal rst_n : std_logic := '0';
     signal shift : std_logic := '0';
     signal load : std_logic := '0';
-    signal data_in : std_logic_vector(7 downto 0) := (others => '0');
+    signal data_in : std_logic_vector(C_DATA_BITS - 1 downto 0) := (others => '0');
     signal data_out : std_logic;
 begin
     dut : entity work.parallel_to_serial
+        generic map (G_DATA_WIDTH => C_DATA_BITS)
         port map (clk => clk, rst_n => rst_n, shift => shift, load => load, data_in => data_in, data_out => data_out);
 
     clk <= not clk after C_CLK_PERIOD / 2;  -- free-running clock
@@ -24,7 +26,7 @@ begin
     begin
         wait for 2 * C_CLK_PERIOD;
         rst_n <= '1';                       -- release reset
-        data_in <= x"A5";
+        data_in <= x"A";
 
         wait until rising_edge(clk);        -- DUT captures data_in on rising edge of clk
         load <= '1';
@@ -33,7 +35,7 @@ begin
         load <= '0';
 
         wait until rising_edge(clk);
-        for bit_index in 0 to 7 loop
+        for bit_index in 0 to C_DATA_BITS - 1 loop
             assert data_out = data_in(bit_index)
                 report "unexpected serial bit at index " & integer'image(bit_index)
                 severity error;

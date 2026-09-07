@@ -17,31 +17,31 @@ architecture sim of tb_UART_RX is
                                             -- clock latency of the RX input
                                             -- synchronizer (real dividers,
                                             -- e.g. 434, have ample margin)
-    constant DATA_BYTE  : std_logic_vector(7 downto 0) := x"A5";
+    constant C_DATA_BITS : positive := 4;
+    constant DATA_BYTE  : std_logic_vector(C_DATA_BITS - 1 downto 0) := x"A";
     signal clk : std_logic := '0';
     signal rst_n : std_logic := '0';
     signal r : std_logic := '0';            -- receive request (arms the RX)
     signal data_in : std_logic := '1';      -- serial line, idle high
     signal rx_valid : std_logic;
-    signal data_rx : std_logic_vector(7 downto 0);
+    signal data_rx : std_logic_vector(C_DATA_BITS - 1 downto 0);
     signal rx_busy : std_logic;
     signal valid_seen : boolean := false;
     signal busy_seen : boolean := false;
 
-    -- Hex conversion for messages (to_hstring is VHDL-2008 only; this local
-    -- helper keeps the TB compilable under VHDL-93/2002 as well).
-    function to_hex(slv : std_logic_vector(7 downto 0)) return string is
-        constant HEX_CHARS : string(1 to 16) := "0123456789ABCDEF";
+    -- Simple hex-style formatter for a small configurable word.
+    function to_hex(slv : std_logic_vector) return string is
+        variable value : natural := 0;
     begin
-        if is_x(slv) then
-            return "XX";
+        if slv'length = 0 then
+            return "";
         end if;
-        return HEX_CHARS(to_integer(unsigned(slv(7 downto 4))) + 1) &
-               HEX_CHARS(to_integer(unsigned(slv(3 downto 0))) + 1);
+        value := to_integer(unsigned(slv));
+        return integer'image(value);
     end function;
 begin
     dut : entity work.UART_RX
-        generic map (G_CLK_FREQ => 100, G_BAUD => 10)   -- divider = 10 = BIT_PERIOD / CLK_PERIOD
+        generic map (G_CLK_FREQ => 100, G_BAUD => 10, G_DATA_BITS => C_DATA_BITS)
         port map (clk => clk, rst_n => rst_n, r => r, data_in => data_in,
                   rx_valid => rx_valid, data_rx => data_rx, rx_busy => rx_busy);
 
@@ -83,7 +83,7 @@ begin
         -- 8N1 frame on the serial line, one bit per BIT_PERIOD
         data_in <= '0';                     -- start bit
         wait for BIT_PERIOD;
-        for i in 0 to 7 loop
+        for i in 0 to C_DATA_BITS - 1 loop
             data_in <= DATA_BYTE(i);        -- data bits, LSB first
             wait for BIT_PERIOD;
         end loop;

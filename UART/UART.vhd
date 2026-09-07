@@ -5,19 +5,20 @@ use ieee.numeric_std.all;
 entity UART is
     generic (
         G_CLK_FREQ : natural := 50_000_000;   -- Hz
-        G_BAUD     : natural := 115_200       -- bit/s
+        G_BAUD     : natural := 115_200;      -- bit/s
+        G_DATA_BITS : positive := 8           -- number of data bits per frame
     );
     port (
         clk              : in std_logic;
         rst_n            : in std_logic;
         w                : in std_logic;
         r                : in std_logic;
-        data_tx_buff     : in std_logic_vector(7 downto 0);
+        data_tx_buff     : in std_logic_vector(G_DATA_BITS - 1 downto 0);
         data_line_rx     : in std_logic;
         tx_busy          : out std_logic;
         rx_busy          : out std_logic;
         rx_valid         : out std_logic;
-        data_rx_buff     : out std_logic_vector(7 downto 0);
+        data_rx_buff     : out std_logic_vector(G_DATA_BITS - 1 downto 0);
         data_line_tx     : out std_logic
     );
 end entity UART;
@@ -31,7 +32,8 @@ begin
     u_tx : entity work.UART_TX
         generic map (
             G_CLK_FREQ => G_CLK_FREQ,
-            G_BAUD     => G_BAUD
+            G_BAUD     => G_BAUD,
+            G_DATA_BITS => G_DATA_BITS
         )
         port map (
             clk              => clk,
@@ -45,7 +47,8 @@ begin
     u_rx : entity work.UART_RX
         generic map (
             G_CLK_FREQ => G_CLK_FREQ,
-            G_BAUD     => G_BAUD
+            G_BAUD     => G_BAUD,
+            G_DATA_BITS => G_DATA_BITS
         )
         port map (
             clk              => clk,

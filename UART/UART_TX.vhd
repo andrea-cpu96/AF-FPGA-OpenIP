@@ -10,13 +10,14 @@ use ieee.numeric_std.all;
 entity UART_TX is
     generic (
         G_CLK_FREQ : natural := 50_000_000;
-        G_BAUD     : natural := 115_200
+        G_BAUD     : natural := 115_200;
+        G_DATA_BITS : positive := 8
     );
     port (
         clk   : in std_logic;
         rst_n : in std_logic;
         w : in std_logic;
-        data_to_transmit  : in std_logic_vector(7 downto 0);
+        data_to_transmit  : in std_logic_vector(G_DATA_BITS - 1 downto 0);
         data_out : out std_logic;   
         tx_busy  : out std_logic
     );
@@ -30,7 +31,7 @@ architecture rtl of UART_TX is
     signal shift      : std_logic;
     signal baud_tick  : std_logic;
     signal baud_enable : std_logic;
-    signal count      : natural range 0 to 7 := 0;
+    signal count      : natural range 0 to G_DATA_BITS - 1 := 0;
     signal data_out_b : std_logic := '1';
     signal data_out_r : std_logic := '1';   -- registered serial output (TXD)
     signal tx_busy_r  : std_logic := '0';   -- registered status output
@@ -50,6 +51,9 @@ begin
         );
 
     u_p2s : entity work.parallel_to_serial(rtl)
+        generic map (
+            G_DATA_WIDTH => G_DATA_BITS
+        )
         port map (
             clk => clk,
             rst_n => rst_n,
@@ -84,7 +88,7 @@ begin
 
                     when DATA_BITS =>
                         if baud_tick = '1' then
-                            if count = 7 then
+                            if count = G_DATA_BITS - 1 then
                                 state <= STOP_BIT;
                                 count <= 0;
                             else

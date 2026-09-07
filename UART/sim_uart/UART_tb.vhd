@@ -20,33 +20,33 @@ architecture sim of tb_UART is
                                             -- divider/2 must exceed the 2-3
                                             -- clock latency of the RX input
                                             -- synchronizer
+    constant C_DATA_BITS : positive := 4;
     signal clk : std_logic := '0';
     signal rst_n : std_logic := '0';
     signal w : std_logic := '0';
     signal r : std_logic := '0';
-    signal data_tx_buff : std_logic_vector(7 downto 0) := (others => '0');
+    signal data_tx_buff : std_logic_vector(C_DATA_BITS - 1 downto 0) := (others => '0');
     signal data_line_rx : std_logic;
     signal tx_busy : std_logic;
     signal rx_busy : std_logic;
     signal rx_valid : std_logic;
-    signal data_rx_buff : std_logic_vector(7 downto 0);
+    signal data_rx_buff : std_logic_vector(C_DATA_BITS - 1 downto 0);
     signal data_line_tx : std_logic;
     signal valid_cnt : integer := 0;
 
-    -- Hex conversion for messages (to_hstring is VHDL-2008 only; this local
-    -- helper keeps the TB compilable under VHDL-93/2002 as well).
-    function to_hex(slv : std_logic_vector(7 downto 0)) return string is
-        constant HEX_CHARS : string(1 to 16) := "0123456789ABCDEF";
+    -- Simple hex-style formatter for a small configurable word.
+    function to_hex(slv : std_logic_vector) return string is
+        variable value : natural := 0;
     begin
-        if is_x(slv) then
-            return "XX";
+        if slv'length = 0 then
+            return "";
         end if;
-        return HEX_CHARS(to_integer(unsigned(slv(7 downto 4))) + 1) &
-               HEX_CHARS(to_integer(unsigned(slv(3 downto 0))) + 1);
+        value := to_integer(unsigned(slv));
+        return integer'image(value);
     end function;
 begin
     dut : entity work.UART
-        generic map (G_CLK_FREQ => 100, G_BAUD => 10)   -- divider = 10 = BIT_PERIOD / CLK_PERIOD
+        generic map (G_CLK_FREQ => 100, G_BAUD => 10, G_DATA_BITS => C_DATA_BITS)   -- divider = 10 = BIT_PERIOD / CLK_PERIOD
         port map (
             clk => clk, rst_n => rst_n,
             w => w, r => r,
@@ -76,28 +76,28 @@ begin
         rst_n <= '1';                       -- release reset (line idle high)
         r <= '1';                           -- arm the receiver (level, kept high)
 
-        -- frame 1: 0xA5
-        data_tx_buff <= x"A5";
+        -- frame 1: 0xA
+        data_tx_buff <= x"A";
         wait until rising_edge(clk);
         w <= '1';                           -- request transmission
         wait until rising_edge(clk);
         w <= '0';                           -- w is level-sensitive: one frame per pulse
         wait for 12 * BIT_PERIOD;           -- frame (10 bits) + margin
-        assert data_rx_buff = x"A5"
+        assert data_rx_buff = x"A"
             report "ERROR frame 1: data_rx_buff = " & to_hex(data_rx_buff) &
-                   ", expected A5"
+                   ", expected A"
             severity error;
 
-        -- frame 2: 0x3C (r still high: the RX re-arms automatically)
-        data_tx_buff <= x"3C";
+        -- frame 2: 0x5 (r still high: the RX re-arms automatically)
+        data_tx_buff <= x"5";
         wait until rising_edge(clk);
         w <= '1';
         wait until rising_edge(clk);
         w <= '0';
         wait for 12 * BIT_PERIOD;
-        assert data_rx_buff = x"3C"
+        assert data_rx_buff = x"5"
             report "ERROR frame 2: data_rx_buff = " & to_hex(data_rx_buff) &
-                   ", expected 3C"
+                   ", expected 5"
             severity error;
         assert valid_cnt = 2
             report "ERROR: expected 2 rx_valid pulses, got " &

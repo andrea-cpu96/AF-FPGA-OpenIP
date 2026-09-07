@@ -3,18 +3,21 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity serial_to_parallel is
+    generic (
+        G_DATA_WIDTH : positive := 8
+    );
     port (
         clk : in  std_logic;
         rst_n : in  std_logic;
         shift : in  std_logic;
         data_in : in  std_logic;
-        data_out : out std_logic_vector(7 downto 0)
+        data_out : out std_logic_vector(G_DATA_WIDTH - 1 downto 0)
     );
 end entity serial_to_parallel;
 
 architecture rtl of serial_to_parallel is
 
-    signal q : std_logic_vector(7 downto 0);
+    signal q : std_logic_vector(G_DATA_WIDTH - 1 downto 0);
 
 begin
     process(clk)
@@ -24,8 +27,9 @@ begin
                 q <= (others => '0');
             elsif shift = '1' then
                 -- LSB-first mirror of parallel_to_serial: the first received bit
-                -- lands in position 0; after 8 shifts the original byte is rebuilt.
-                q <= data_in & q(7 downto 1);
+                -- lands in position 0; after G_DATA_WIDTH shifts the original
+                -- word is rebuilt.
+                q <= data_in & q(G_DATA_WIDTH - 1 downto 1);
             end if;
         end if;
     end process;

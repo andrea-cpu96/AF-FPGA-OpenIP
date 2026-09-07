@@ -5,7 +5,8 @@ use ieee.numeric_std.all;
 entity UART_RX is
     generic (
         G_CLK_FREQ : natural := 50_000_000;
-        G_BAUD     : natural := 115_200
+        G_BAUD     : natural := 115_200;
+        G_DATA_BITS : positive := 8
     );
     port (
         clk : in  std_logic;
@@ -13,7 +14,7 @@ entity UART_RX is
         r : in  std_logic;
         data_in : in  std_logic;
         rx_valid : out std_logic;
-        data_rx : out std_logic_vector(7 downto 0);
+        data_rx : out std_logic_vector(G_DATA_BITS - 1 downto 0);
         rx_busy : out std_logic
     );
 end entity UART_RX;
@@ -31,7 +32,7 @@ architecture rtl of UART_RX is
     signal data_in_meta : std_logic := '1'; -- 1st sync stage (metastable-prone)
     signal data_in_sync : std_logic := '1'; -- synchronized RXD (the only
                                             -- source used downstream)
-    signal count : natural range 0 to 7 := 0;
+    signal count : natural range 0 to G_DATA_BITS - 1 := 0;
 
     type state_t is (IDLE, WAIT_START_BIT, START_BIT, DATA_BITS, STOP_BIT);
     signal state: state_t;
@@ -52,6 +53,9 @@ begin
         );
 
     u_s2p : entity work.serial_to_parallel(rtl)
+        generic map (
+            G_DATA_WIDTH => G_DATA_BITS
+        )
         port map (
             clk => clk,
             rst_n => rst_n,
@@ -111,7 +115,7 @@ begin
 
                 if baud_tick = '1' then
                     if state = DATA_BITS then
-                        if count = 7 then
+                        if count = G_DATA_BITS - 1 then
                             count <= 0;
                         else
                             count <= count + 1;
@@ -156,7 +160,7 @@ begin
             when DATA_BITS =>
                 if baud_tick = '1' then
                     shift <= '1';
-                    if count = 7 then
+                    if count = G_DATA_BITS - 1 then
                         nstate <= STOP_BIT;
                     end if;
                 end if;

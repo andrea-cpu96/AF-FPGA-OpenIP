@@ -8,19 +8,22 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity parallel_to_serial is
+    generic (
+        G_DATA_WIDTH : positive := 8
+    );
     port (
         clk : in  std_logic;
         rst_n : in  std_logic;
         shift : in  std_logic;
         load : in  std_logic;
-        data_in : in  std_logic_vector(7 downto 0);
+        data_in : in  std_logic_vector(G_DATA_WIDTH - 1 downto 0);
         data_out : out std_logic
     );
 end entity parallel_to_serial;
 
 architecture rtl of parallel_to_serial is
     signal shift_sig : std_logic;
-    signal data_in_load : std_logic_vector(7 downto 0);
+    signal data_in_load : std_logic_vector(G_DATA_WIDTH - 1 downto 0);
 begin
     process(clk)
     begin
@@ -30,7 +33,7 @@ begin
             elsif load = '1' then
                 data_in_load <= data_in;
             elsif shift = '1' then
-                 data_in_load <= '0' & data_in_load(7 downto 1);   -- LSB first
+                 data_in_load <= '0' & data_in_load(G_DATA_WIDTH - 1 downto 1);   -- LSB first
             end if;
         end if;
     end process;

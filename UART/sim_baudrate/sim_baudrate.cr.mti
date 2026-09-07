@@ -1,0 +1,121 @@
+C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/baudrate_gen.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/baudrate_gen.vhd
+Model Technology ModelSim - Intel FPGA Edition vcom 2020.1 Compiler 2020.02 Feb 28 2020
+-- Loading package STANDARD
+-- Loading package TEXTIO
+-- Loading package std_logic_1164
+-- Loading package NUMERIC_STD
+-- Compiling entity baudrate_gen
+-- Compiling architecture rtl of baudrate_gen
+
+} {} {}} C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_uart_tx/UART_TX_tb.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_uart_tx/UART_TX_tb.vhd
+Model Technology ModelSim - Intel FPGA Edition vcom 2020.1 Compiler 2020.02 Feb 28 2020
+-- Loading package STANDARD
+-- Loading package TEXTIO
+-- Loading package std_logic_1164
+-- Loading package NUMERIC_STD
+-- Compiling entity tb_UART_TX
+-- Compiling architecture sim of tb_UART_TX
+-- Loading entity UART_TX
+
+} {} {}} C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_uart/UART_tb.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_uart/UART_tb.vhd
+Model Technology ModelSim - Intel FPGA Edition vcom 2020.1 Compiler 2020.02 Feb 28 2020
+-- Loading package STANDARD
+-- Loading package TEXTIO
+-- Loading package std_logic_1164
+-- Loading package NUMERIC_STD
+-- Compiling entity tb_UART
+-- Compiling architecture sim of tb_UART
+-- Loading entity UART
+
+} {} {}} C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/UART_RX.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/UART_RX.vhd
+Model Technology ModelSim - Intel FPGA Edition vcom 2020.1 Compiler 2020.02 Feb 28 2020
+-- Loading package STANDARD
+-- Loading package TEXTIO
+-- Loading package std_logic_1164
+-- Loading package NUMERIC_STD
+-- Compiling entity UART_RX
+-- Compiling architecture rtl of UART_RX
+-- Loading entity baudrate_gen
+-- Loading entity serial_to_parallel
+
+} {} {}} C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/UART_TX.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/UART_TX.vhd
+Model Technology ModelSim - Intel FPGA Edition vcom 2020.1 Compiler 2020.02 Feb 28 2020
+-- Loading package STANDARD
+-- Loading package TEXTIO
+-- Loading package std_logic_1164
+-- Loading package NUMERIC_STD
+-- Compiling entity UART_TX
+-- Compiling architecture rtl of UART_TX
+-- Loading entity baudrate_gen
+-- Loading entity parallel_to_serial
+
+} {} {}} C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_parallel_to_serial/parallel_to_serial_tb.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_parallel_to_serial/parallel_to_serial_tb.vhd
+Model Technology ModelSim - Intel FPGA Edition vcom 2020.1 Compiler 2020.02 Feb 28 2020
+-- Loading package STANDARD
+-- Loading package TEXTIO
+-- Loading package std_logic_1164
+-- Loading package NUMERIC_STD
+-- Compiling entity tb_parallel_to_serial
+-- Compiling architecture sim of tb_parallel_to_serial
+-- Loading entity parallel_to_serial
+
+} {} {}} C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_serial_to_parallel/serial_to_parallel_tb.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_serial_to_parallel/serial_to_parallel_tb.vhd
+Model Technology ModelSim - Intel FPGA Edition vcom 2020.1 Compiler 2020.02 Feb 28 2020
+-- Loading package STANDARD
+-- Loading package TEXTIO
+-- Loading package std_logic_1164
+-- Loading package NUMERIC_STD
+-- Compiling entity tb_serial_to_parallel
+-- Compiling architecture sim of tb_serial_to_parallel
+-- Loading entity serial_to_parallel
+
+} {} {}} C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/UART.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/UART.vhd
+Model Technology ModelSim - Intel FPGA Edition vcom 2020.1 Compiler 2020.02 Feb 28 2020
+-- Loading package STANDARD
+-- Loading package TEXTIO
+-- Loading package std_logic_1164
+-- Loading package NUMERIC_STD
+-- Compiling entity UART
+-- Compiling architecture rtl of UART
+-- Loading entity UART_TX
+-- Loading entity UART_RX
+
+} {} {}} C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_baudrate/baudrate_gen_tb.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_baudrate/baudrate_gen_tb.vhd
+Model Technology ModelSim - Intel FPGA Edition vcom 2020.1 Compiler 2020.02 Feb 28 2020
+-- Loading package STANDARD
+-- Loading package TEXTIO
+-- Loading package std_logic_1164
+-- Loading package NUMERIC_STD
+-- Compiling entity baudrate_gen_tb
+-- Compiling architecture sim of baudrate_gen_tb
+-- Loading entity baudrate_gen
+
+} {} {}} C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/parallel_to_serial.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/parallel_to_serial.vhd
+Model Technology ModelSim - Intel FPGA Edition vcom 2020.1 Compiler 2020.02 Feb 28 2020
+-- Loading package STANDARD
+-- Loading package TEXTIO
+-- Loading package std_logic_1164
+-- Loading package NUMERIC_STD
+-- Compiling entity parallel_to_serial
+-- Compiling architecture rtl of parallel_to_serial
+
+} {} {}} C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/serial_to_parallel.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/serial_to_parallel.vhd
+Model Technology ModelSim - Intel FPGA Edition vcom 2020.1 Compiler 2020.02 Feb 28 2020
+-- Loading package STANDARD
+-- Loading package TEXTIO
+-- Loading package std_logic_1164
+-- Loading package NUMERIC_STD
+-- Compiling entity serial_to_parallel
+-- Compiling architecture rtl of serial_to_parallel
+
+} {} {}} C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_uart_rx/UART_RX_tb.vhd {1 {vcom -work work -2002 -explicit -stats=none C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_uart_rx/UART_RX_tb.vhd
+Model Technology ModelSim - Intel FPGA Edition vcom 2020.1 Compiler 2020.02 Feb 28 2020
+-- Loading package STANDARD
+-- Loading package TEXTIO
+-- Loading package std_logic_1164
+-- Loading package NUMERIC_STD
+-- Compiling entity tb_UART_RX
+-- Compiling architecture sim of tb_UART_RX
+-- Loading entity UART_RX
+
+} {} {}}

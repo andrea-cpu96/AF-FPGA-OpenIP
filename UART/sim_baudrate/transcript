@@ -1,0 +1,40 @@
+# Compile of baudrate_gen_tb.vhd was successful.
+# Compile of parallel_to_serial_tb.vhd failed with 3 errors.
+# Compile of UART_TX_tb.vhd failed with 3 errors.
+# Compile of UART_RX.vhd failed with 3 errors.
+# Compile of serial_to_parallel.vhd was successful.
+# Compile of parallel_to_serial.vhd was successful.
+# Compile of UART_TX.vhd was successful.
+# Compile of serial_to_parallel_tb.vhd was successful.
+# Compile of baudrate_gen.vhd was successful.
+# Compile of UART_RX_tb.vhd was successful.
+# Compile of UART.vhd was successful.
+# 11 compiles, 4 failed with 9 errors.
+# Error opening C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_baudrate/UART_tb.vhd
+# Path name 'C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_baudrate/UART_tb.vhd' doesn't exist.
+# Compile of baudrate_gen_tb.vhd was successful.
+# Compile of parallel_to_serial_tb.vhd was successful.
+# Compile of UART_TX_tb.vhd was successful.
+# Compile of UART_RX.vhd was successful.
+# Compile of serial_to_parallel.vhd was successful.
+# Compile of parallel_to_serial.vhd was successful.
+# Compile of UART_TX.vhd was successful.
+# Compile of serial_to_parallel_tb.vhd was successful.
+# Compile of baudrate_gen.vhd was successful.
+# Compile of UART_RX_tb.vhd was successful.
+# Compile of UART.vhd was successful.
+# Compile of UART_tb.vhd was successful.
+# 12 compiles, 0 failed with no errors.
+# Compile of baudrate_gen_tb.vhd was successful.
+# Compile of parallel_to_serial_tb.vhd was successful.
+# Compile of UART_TX_tb.vhd was successful.
+# Compile of UART_RX.vhd was successful.
+# Compile of serial_to_parallel.vhd was successful.
+# Compile of parallel_to_serial.vhd was successful.
+# Compile of UART_TX.vhd was successful.
+# Compile of serial_to_parallel_tb.vhd was successful.
+# Compile of baudrate_gen.vhd was successful.
+# Compile of UART_RX_tb.vhd was successful.
+# Compile of UART.vhd was successful.
+# Compile of UART_tb.vhd was successful.
+# 12 compiles, 0 failed with no errors.

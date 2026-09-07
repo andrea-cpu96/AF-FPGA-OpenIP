@@ -1,0 +1,12 @@
+# vsim -voptargs="+acc" work.tb_parallel_to_serial 
+# Start time: 18:52:48 on Sep 05,2026
+# Loading std.standard
+# Loading std.textio(body)
+# Loading ieee.std_logic_1164(body)
+# Loading ieee.numeric_std(body)
+# Loading work.tb_parallel_to_serial(sim)
+# Loading work.parallel_to_serial(rtl)
+# ** Note: parallel_to_serial test passed
+#    Time: 570 ns  Iteration: 0  Instance: /tb_parallel_to_serial
+# End time: 18:52:49 on Sep 05,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0

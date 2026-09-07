@@ -1,0 +1,16 @@
+# vsim -voptargs="+acc" work.baudrate_gen_tb 
+# Start time: 11:27:56 on Sep 07,2026
+# Loading std.standard
+# Loading std.textio(body)
+# Loading ieee.std_logic_1164(body)
+# Loading ieee.numeric_std(body)
+# Loading work.baudrate_gen_tb(sim)
+# Loading work.baudrate_gen(rtl)
+# ** Note: =====================================================
+#    Time: 440320 ns  Iteration: 0  Instance: /baudrate_gen_tb
+# ** Note:  BRG TEST PASSED - 43 ticks checked, 0 errors
+#    Time: 440320 ns  Iteration: 0  Instance: /baudrate_gen_tb
+# ** Note: =====================================================
+#    Time: 440320 ns  Iteration: 0  Instance: /baudrate_gen_tb
+# End time: 11:27:57 on Sep 07,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0

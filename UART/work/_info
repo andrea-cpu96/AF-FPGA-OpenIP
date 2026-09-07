@@ -1,0 +1,628 @@
+m255
+K4
+z2
+!s11e vcom 2020.1 2020.02, Feb 28 2020
+13
+!s112 1.1
+!i10d 8192
+!i10e 25
+!i10f 100
+cModel Technology
+Z0 dC:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART
+Ebaudrate_gen
+Z1 w1788726594
+Z2 DPx4 ieee 11 numeric_std 0 22 aU^R8eGcicLcUFIaBQSL>3
+Z3 DPx3 std 6 textio 0 22 zE1`LPoLg^DX3Oz^4Fj1K3
+Z4 DPx4 ieee 14 std_logic_1164 0 22 cVAk:aDinOX8^VGI1ekP<3
+!i122 14
+R0
+Z5 8baudrate_gen.vhd
+Z6 Fbaudrate_gen.vhd
+l0
+Z7 L10 1
+VniTRZRlILkLVWMiBERlA_2
+!s100 m5JPQC6icbGlISk`G];Kf2
+Z8 OV;C;2020.1;71
+33
+Z9 !s110 1788773270
+!i10b 1
+Z10 !s108 1788773270.000000
+Z11 !s90 -2008|-quiet|baudrate_gen.vhd|parallel_to_serial.vhd|serial_to_parallel.vhd|UART_TX.vhd|UART_RX.vhd|UART.vhd|sim_uart_tx\UART_TX_tb.vhd|sim_uart_rx\UART_RX_tb.vhd|sim_uart\UART_tb.vhd|sim_parallel_to_serial\parallel_to_serial_tb.vhd|sim_serial_to_parallel\serial_to_parallel_tb.vhd|
+Z12 !s107 sim_serial_to_parallel\serial_to_parallel_tb.vhd|sim_parallel_to_serial\parallel_to_serial_tb.vhd|sim_uart\UART_tb.vhd|sim_uart_rx\UART_RX_tb.vhd|sim_uart_tx\UART_TX_tb.vhd|UART.vhd|UART_RX.vhd|UART_TX.vhd|serial_to_parallel.vhd|parallel_to_serial.vhd|baudrate_gen.vhd|
+!i113 1
+Z13 o-quiet -2008
+Z14 tExplicit 1 CvgOpt 0
+Artl
+R2
+R3
+R4
+Z15 DEx4 work 12 baudrate_gen 0 22 niTRZRlILkLVWMiBERlA_2
+!i122 14
+l30
+Z16 L26 28
+Z17 VjQLnbU8mm2`f6MlNf?_aZ2
+Z18 !s100 I9L>VRTfkVjiGQPN9;F9c2
+R8
+33
+R9
+!i10b 1
+R10
+R11
+R12
+!i113 1
+R13
+R14
+Ebaudrate_gen_tb
+Z19 w1788723662
+R2
+R3
+R4
+!i122 4
+R0
+Z20 8sim_baudrate\baudrate_gen_tb.vhd
+Z21 Fsim_baudrate\baudrate_gen_tb.vhd
+l0
+L22 1
+Vh;;3:eHb0B0NfEFl3_Rjn1
+!s100 zz:cm41UlzgY3jUF=@Pi02
+R8
+33
+Z22 !s110 1788726662
+!i10b 1
+Z23 !s108 1788726662.000000
+Z24 !s90 -2008|-quiet|sim_baudrate\baudrate_gen_tb.vhd|
+Z25 !s107 sim_baudrate\baudrate_gen_tb.vhd|
+!i113 1
+R13
+R14
+Asim
+R15
+R2
+R3
+R4
+DEx4 work 15 baudrate_gen_tb 0 22 h;;3:eHb0B0NfEFl3_Rjn1
+!i122 4
+l42
+L25 166
+Vh22cfQcaO4=Q@nbgEhdAb2
+!s100 >V0=;[CCl96W<4hi_5C;Y3
+R8
+33
+R22
+!i10b 1
+R23
+R24
+R25
+!i113 1
+R13
+R14
+Eparallel_to_serial
+Z26 w1788625561
+R2
+R3
+R4
+!i122 14
+R0
+Z27 8parallel_to_serial.vhd
+Z28 Fparallel_to_serial.vhd
+l0
+R7
+VomlzzmDcEFNL7mWFm`[VO0
+!s100 JZD=0IW1BAVeNOGB:XS9F0
+R8
+33
+R9
+!i10b 1
+R10
+R11
+R12
+!i113 1
+R13
+R14
+Artl
+R2
+R3
+R4
+Z29 DEx4 work 18 parallel_to_serial 0 22 omlzzmDcEFNL7mWFm`[VO0
+!i122 14
+l24
+Z30 L21 20
+Z31 VlW6L^eMeE@dP5gocHzjNX0
+Z32 !s100 Qgo[4h8_lFmLPJD6`@BQH0
+R8
+33
+R9
+!i10b 1
+R10
+R11
+R12
+!i113 1
+R13
+R14
+Eserial_to_parallel
+Z33 w1788719792
+R2
+R3
+R4
+!i122 14
+R0
+Z34 8serial_to_parallel.vhd
+Z35 Fserial_to_parallel.vhd
+l0
+L5 1
+VZA^90E]o6:BPgRNf]i2?`3
+!s100 TXE67=0VC6QT6:oMPCV<d3
+R8
+33
+R9
+!i10b 1
+R10
+R11
+R12
+!i113 1
+R13
+R14
+Artl
+R2
+R3
+R4
+Z36 DEx4 work 18 serial_to_parallel 0 22 ZA^90E]o6:BPgRNf]i2?`3
+!i122 14
+l19
+Z37 L15 20
+Z38 VP?=JgL7bhTiXYiME_ANgM1
+Z39 !s100 hcQLPD1I?1YRA4GRNjY8_1
+R8
+33
+R9
+!i10b 1
+R10
+R11
+R12
+!i113 1
+R13
+R14
+Etb_loopback
+Z40 w1788763239
+R2
+R3
+R4
+!i122 10
+R0
+Z41 8_loopback_tb.vhd
+Z42 F_loopback_tb.vhd
+l0
+R7
+V0SFCDV_F<fDLh>^m@<4FZ0
+!s100 WQH2^Vi`;8XRPkR^PM]6[2
+R8
+33
+Z43 !s110 1788763288
+!i10b 1
+Z44 !s108 1788763288.000000
+Z45 !s90 -2008|-quiet|baudrate_gen.vhd|parallel_to_serial.vhd|serial_to_parallel.vhd|UART_TX.vhd|UART_RX.vhd|UART.vhd|sim_uart_rx\UART_RX_tb.vhd|sim_uart_tx\UART_TX_tb.vhd|sim_serial_to_parallel\serial_to_parallel_tb.vhd|_loopback_tb.vhd|
+Z46 !s107 _loopback_tb.vhd|sim_serial_to_parallel\serial_to_parallel_tb.vhd|sim_uart_tx\UART_TX_tb.vhd|sim_uart_rx\UART_RX_tb.vhd|UART.vhd|UART_RX.vhd|UART_TX.vhd|serial_to_parallel.vhd|parallel_to_serial.vhd|baudrate_gen.vhd|
+!i113 1
+R13
+R14
+Asim
+Z47 DEx4 work 7 uart_rx 0 22 @G]ffiJFljPYhOz9>U99T3
+Z48 DEx4 work 7 uart_tx 0 22 QeDY3RCFWUmCaaTOd6mYb2
+R2
+R3
+R4
+DEx4 work 11 tb_loopback 0 22 0SFCDV_F<fDLh>^m@<4FZ0
+!i122 10
+l39
+L13 85
+Vmca8E0eT@l_dcnO5=m1KW1
+!s100 Ue`Z5^^;@a8?TNoXL2bYc2
+R8
+33
+R43
+!i10b 1
+R44
+R45
+R46
+!i113 1
+R13
+R14
+Etb_parallel_to_serial
+Z49 w1788677773
+R2
+R3
+R4
+!i122 14
+R0
+Z50 8sim_parallel_to_serial\parallel_to_serial_tb.vhd
+Z51 Fsim_parallel_to_serial\parallel_to_serial_tb.vhd
+l0
+L5 1
+Vob75:DF]c=aj@X?JjS_WP2
+!s100 PXYJW;8<egLVcfYBJ6d4K0
+R8
+33
+R9
+!i10b 1
+R10
+R11
+R12
+!i113 1
+R13
+R14
+Asim
+R29
+R2
+R3
+R4
+Z52 DEx4 work 21 tb_parallel_to_serial 0 22 ob75:DF]c=aj@X?JjS_WP2
+!i122 14
+l17
+Z53 L8 45
+Z54 V8fGV?oV7GBHRh;N9nF0<N2
+Z55 !s100 4g2W_mmhej5XSlIk`Wc;;2
+R8
+33
+R9
+!i10b 1
+R10
+R11
+R12
+!i113 1
+R13
+R14
+Etb_serial_to_parallel
+Z56 w1788728047
+R2
+R3
+R4
+!i122 14
+R0
+Z57 8sim_serial_to_parallel\serial_to_parallel_tb.vhd
+Z58 Fsim_serial_to_parallel\serial_to_parallel_tb.vhd
+l0
+L5 1
+V4A7?RO^MFT7=6<7^KJXil0
+!s100 N0M998:F?RW?jJWc5[LYH3
+R8
+33
+R9
+!i10b 1
+R10
+R11
+R12
+!i113 1
+R13
+R14
+Asim
+R36
+R2
+R3
+R4
+Z59 DEx4 work 21 tb_serial_to_parallel 0 22 4A7?RO^MFT7=6<7^KJXil0
+!i122 14
+l29
+Z60 L8 63
+Z61 VOEMH:CEIihnoSMGj3bZ6H3
+Z62 !s100 X_AB@SL>>3PWIoK8<A]d43
+R8
+33
+R9
+!i10b 1
+R10
+R11
+R12
+!i113 1
+R13
+R14
+Etb_uart
+Z63 w1788770701
+R2
+R3
+R4
+!i122 14
+R0
+Z64 8sim_uart\UART_tb.vhd
+Z65 Fsim_uart\UART_tb.vhd
+l0
+L14 1
+ViJgf9aPKGN?4l1MoI=:A13
+!s100 FSACAQ?@S61ib<F1DD6?F1
+R8
+33
+R9
+!i10b 1
+R10
+R11
+R12
+!i113 1
+R13
+R14
+Asim
+Z66 DEx4 work 4 uart 0 22 SjL<oHT;5[M3aZF6>TY^;2
+R2
+R3
+R4
+Z67 DEx4 work 7 tb_uart 0 22 iJgf9aPKGN?4l1MoI=:A13
+!i122 14
+l47
+Z68 L17 97
+Z69 VA;ZR?TVU`lao6E_4<_BP?0
+Z70 !s100 1fWGW;dd^mLEKRl_EmP3:3
+R8
+33
+R9
+!i10b 1
+R10
+R11
+R12
+!i113 1
+R13
+R14
+Etb_uart_rx
+Z71 w1788763235
+R2
+R3
+R4
+!i122 14
+R0
+Z72 8sim_uart_rx\UART_RX_tb.vhd
+Z73 Fsim_uart_rx\UART_RX_tb.vhd
+l0
+R7
+VFVJn_CJSJ:1lm9HNO19go2
+!s100 QDVb76M`ZodLLl[B:m4R`1
+R8
+33
+R9
+!i10b 1
+R10
+R11
+R12
+!i113 1
+R13
+R14
+Asim
+R47
+R2
+R3
+R4
+Z74 DEx4 work 10 tb_uart_rx 0 22 FVJn_CJSJ:1lm9HNO19go2
+!i122 14
+l42
+Z75 L13 96
+Z76 VdH9l?[O5?0UfLj8EIHDih0
+Z77 !s100 hEB[Hf6O:]Ih]9meTj;eB1
+R8
+33
+R9
+!i10b 1
+R10
+R11
+R12
+!i113 1
+R13
+R14
+Etb_uart_top
+Z78 w1788768539
+R2
+R3
+R4
+!i122 11
+R0
+Z79 8_uart_top_tb.vhd
+Z80 F_uart_top_tb.vhd
+l0
+L11 1
+VRLBk6Cg4zPiVS8F6=996d1
+!s100 ;nRE3UTc^5hIj2bgk5Cz13
+R8
+33
+Z81 !s110 1788768555
+!i10b 1
+Z82 !s108 1788768555.000000
+Z83 !s90 -2008|-quiet|baudrate_gen.vhd|parallel_to_serial.vhd|serial_to_parallel.vhd|UART_TX.vhd|UART_RX.vhd|UART.vhd|_uart_top_tb.vhd|
+Z84 !s107 _uart_top_tb.vhd|UART.vhd|UART_RX.vhd|UART_TX.vhd|serial_to_parallel.vhd|parallel_to_serial.vhd|baudrate_gen.vhd|
+!i113 1
+R13
+R14
+Asim
+R66
+R2
+R3
+R4
+DEx4 work 11 tb_uart_top 0 22 RLBk6Cg4zPiVS8F6=996d1
+!i122 11
+l40
+L14 92
+VQjj=UeTA?amGe;^QkiaBb0
+!s100 k@zi3I0kl9zL1T8=Hb?UW3
+R8
+33
+R81
+!i10b 1
+R82
+R83
+R84
+!i113 1
+R13
+R14
+Etb_uart_tx
+Z85 w1788712480
+R2
+R3
+R4
+!i122 14
+R0
+Z86 8sim_uart_tx\UART_TX_tb.vhd
+Z87 Fsim_uart_tx\UART_TX_tb.vhd
+l0
+L5 1
+V?9YfdTOgQWSVo[fS]XXzG1
+!s100 E<227_[eLfeG4c:m2dTOC3
+R8
+33
+R9
+!i10b 1
+R10
+R11
+R12
+!i113 1
+R13
+R14
+Asim
+R48
+R2
+R3
+R4
+Z88 DEx4 work 10 tb_uart_tx 0 22 ?9YfdTOgQWSVo[fS]XXzG1
+!i122 14
+l16
+Z89 L8 30
+Z90 V2AgSk7FF`kfEZ_;QFJY3j3
+Z91 !s100 W9JEReWP9ooZhCg0XI<J43
+R8
+33
+R9
+!i10b 1
+R10
+R11
+R12
+!i113 1
+R13
+R14
+Euart
+Z92 w1788768662
+R2
+R3
+R4
+!i122 14
+R0
+Z93 8UART.vhd
+Z94 FUART.vhd
+l0
+L5 1
+VSjL<oHT;5[M3aZF6>TY^;2
+!s100 TfHihE6M_LJB9[SUMGfGh1
+R8
+33
+R9
+!i10b 1
+R10
+R11
+R12
+!i113 1
+R13
+R14
+Artl
+R47
+R48
+R2
+R3
+R4
+R66
+!i122 14
+l26
+Z95 L25 35
+Z96 V>V47SRdmP@KmRQilo7Lnb3
+Z97 !s100 Zf0EEPQE[c3AkmGD=Km``0
+R8
+33
+R9
+!i10b 1
+R10
+R11
+R12
+!i113 1
+R13
+R14
+Euart_rx
+Z98 w1788763230
+R2
+R3
+R4
+!i122 14
+R0
+Z99 8UART_RX.vhd
+Z100 FUART_RX.vhd
+l0
+L5 1
+V@G]ffiJFljPYhOz9>U99T3
+!s100 ;_nTf[>hfZ8c0>4N9EfAI3
+R8
+33
+R9
+!i10b 1
+R10
+R11
+R12
+!i113 1
+R13
+R14
+Artl
+R36
+R15
+R2
+R3
+R4
+R47
+!i122 14
+l40
+Z101 L21 150
+Z102 VV>;jY3:G[]aWl7I18^kaY1
+Z103 !s100 jL`fIC1HofZl:P^cgOPlY0
+R8
+33
+R9
+!i10b 1
+R10
+R11
+R12
+!i113 1
+R13
+R14
+Euart_tx
+Z104 w1788763215
+R2
+R3
+R4
+!i122 14
+R0
+Z105 8UART_TX.vhd
+Z106 FUART_TX.vhd
+l0
+R7
+VQeDY3RCFWUmCaaTOd6mYb2
+!s100 eGhc8FVi1?UL7Zn9D@z5]2
+R8
+33
+R9
+!i10b 1
+R10
+R11
+R12
+!i113 1
+R13
+R14
+Artl
+R29
+R15
+R2
+R3
+R4
+R48
+!i122 14
+l41
+Z107 L25 109
+Z108 V:fm7YOmnHmgRZjge>=IY52
+Z109 !s100 5:D9LE3bR::IXAoa5bZo60
+R8
+33
+R9
+!i10b 1
+R10
+R11
+R12
+!i113 1
+R13
+R14

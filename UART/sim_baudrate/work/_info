@@ -1,0 +1,539 @@
+m255
+K4
+z2
+!s11e vcom 2020.1 2020.02, Feb 28 2020
+13
+!s112 1.1
+!i10d 8192
+!i10e 25
+!i10f 100
+cModel Technology
+Z0 dC:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_baudrate
+Ebaudrate_gen
+Z1 w1788726594
+Z2 DPx4 ieee 11 numeric_std 0 22 aU^R8eGcicLcUFIaBQSL>3
+Z3 DPx3 std 6 textio 0 22 zE1`LPoLg^DX3Oz^4Fj1K3
+Z4 DPx4 ieee 14 std_logic_1164 0 22 cVAk:aDinOX8^VGI1ekP<3
+!i122 33
+R0
+Z5 8C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/baudrate_gen.vhd
+Z6 FC:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/baudrate_gen.vhd
+l0
+Z7 L10 1
+VUZ?3;9iioHeezYkK2M6YD3
+!s100 m5JPQC6icbGlISk`G];Kf2
+Z8 OV;C;2020.1;71
+32
+Z9 !s110 1788773962
+!i10b 1
+Z10 !s108 1788773962.000000
+Z11 !s90 -reportprogress|300|-work|work|-2002|-explicit|-stats=none|C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/baudrate_gen.vhd|
+Z12 !s107 C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/baudrate_gen.vhd|
+!i113 1
+Z13 o-work work -2002 -explicit
+Z14 tExplicit 1 CvgOpt 0
+Artl
+R2
+R3
+R4
+Z15 DEx4 work 12 baudrate_gen 0 22 UZ?3;9iioHeezYkK2M6YD3
+!i122 33
+l30
+L26 28
+VGJ[?j^YXV9:icRH;]_`Gf3
+!s100 I9L>VRTfkVjiGQPN9;F9c2
+R8
+32
+R9
+!i10b 1
+R10
+R11
+R12
+!i113 1
+R13
+R14
+Ebaudrate_gen_tb
+Z16 w1788723662
+R2
+R3
+R4
+!i122 25
+R0
+Z17 8C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_baudrate/baudrate_gen_tb.vhd
+Z18 FC:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_baudrate/baudrate_gen_tb.vhd
+l0
+L22 1
+VIX[blgZ4LQbZlITac9gOT1
+!s100 zz:cm41UlzgY3jUF=@Pi02
+R8
+32
+Z19 !s110 1788773961
+!i10b 1
+Z20 !s108 1788773961.000000
+Z21 !s90 -reportprogress|300|-work|work|-2002|-explicit|-stats=none|C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_baudrate/baudrate_gen_tb.vhd|
+Z22 !s107 C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_baudrate/baudrate_gen_tb.vhd|
+!i113 1
+R13
+R14
+Asim
+R15
+R2
+R3
+R4
+DEx4 work 15 baudrate_gen_tb 0 22 IX[blgZ4LQbZlITac9gOT1
+!i122 25
+l42
+L25 166
+VgbI0l]`0F3n?HzO[EgheT0
+!s100 >V0=;[CCl96W<4hi_5C;Y3
+R8
+32
+R19
+!i10b 1
+R20
+R21
+R22
+!i113 1
+R13
+R14
+Eparallel_to_serial
+Z23 w1788625561
+R2
+R3
+R4
+!i122 30
+R0
+Z24 8C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/parallel_to_serial.vhd
+Z25 FC:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/parallel_to_serial.vhd
+l0
+R7
+V7IUdST[MM?3>`;a;;DZoi2
+!s100 JZD=0IW1BAVeNOGB:XS9F0
+R8
+32
+R9
+!i10b 1
+R10
+Z26 !s90 -reportprogress|300|-work|work|-2002|-explicit|-stats=none|C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/parallel_to_serial.vhd|
+Z27 !s107 C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/parallel_to_serial.vhd|
+!i113 1
+R13
+R14
+Artl
+R2
+R3
+R4
+Z28 DEx4 work 18 parallel_to_serial 0 22 7IUdST[MM?3>`;a;;DZoi2
+!i122 30
+l24
+L21 20
+VA[J5ab=P42[GUj1O620WE1
+!s100 Qgo[4h8_lFmLPJD6`@BQH0
+R8
+32
+R9
+!i10b 1
+R10
+R26
+R27
+!i113 1
+R13
+R14
+Eserial_to_parallel
+Z29 w1788719792
+R2
+R3
+R4
+!i122 29
+R0
+Z30 8C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/serial_to_parallel.vhd
+Z31 FC:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/serial_to_parallel.vhd
+l0
+L5 1
+VGzEo@1h`T1^3Pz`PNlAYA2
+!s100 TXE67=0VC6QT6:oMPCV<d3
+R8
+32
+R9
+!i10b 1
+R20
+Z32 !s90 -reportprogress|300|-work|work|-2002|-explicit|-stats=none|C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/serial_to_parallel.vhd|
+Z33 !s107 C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/serial_to_parallel.vhd|
+!i113 1
+R13
+R14
+Artl
+R2
+R3
+R4
+Z34 DEx4 work 18 serial_to_parallel 0 22 GzEo@1h`T1^3Pz`PNlAYA2
+!i122 29
+l19
+L15 20
+VGIAlA:RjUNI4n:Z[MdlE^3
+!s100 hcQLPD1I?1YRA4GRNjY8_1
+R8
+32
+R9
+!i10b 1
+R20
+R32
+R33
+!i113 1
+R13
+R14
+Etb_parallel_to_serial
+Z35 w1788677773
+R2
+R3
+R4
+!i122 26
+R0
+Z36 8C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_parallel_to_serial/parallel_to_serial_tb.vhd
+Z37 FC:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_parallel_to_serial/parallel_to_serial_tb.vhd
+l0
+L5 1
+V7O>R8eA=4=UXiF2NHG9F91
+!s100 PXYJW;8<egLVcfYBJ6d4K0
+R8
+32
+R19
+!i10b 1
+R20
+Z38 !s90 -reportprogress|300|-work|work|-2002|-explicit|-stats=none|C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_parallel_to_serial/parallel_to_serial_tb.vhd|
+Z39 !s107 C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_parallel_to_serial/parallel_to_serial_tb.vhd|
+!i113 1
+R13
+R14
+Asim
+R28
+R2
+R3
+R4
+DEx4 work 21 tb_parallel_to_serial 0 22 7O>R8eA=4=UXiF2NHG9F91
+!i122 26
+l17
+L8 45
+VnY;9gfW7F9a2cZ7@52[5e0
+!s100 4g2W_mmhej5XSlIk`Wc;;2
+R8
+32
+R19
+!i10b 1
+R20
+R38
+R39
+!i113 1
+R13
+R14
+Etb_serial_to_parallel
+Z40 w1788728047
+R2
+R3
+R4
+!i122 32
+R0
+Z41 8C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_serial_to_parallel/serial_to_parallel_tb.vhd
+Z42 FC:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_serial_to_parallel/serial_to_parallel_tb.vhd
+l0
+L5 1
+V7ZnOAlNL0:gWSK9;n32<k2
+!s100 N0M998:F?RW?jJWc5[LYH3
+R8
+32
+R9
+!i10b 1
+R10
+Z43 !s90 -reportprogress|300|-work|work|-2002|-explicit|-stats=none|C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_serial_to_parallel/serial_to_parallel_tb.vhd|
+Z44 !s107 C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_serial_to_parallel/serial_to_parallel_tb.vhd|
+!i113 1
+R13
+R14
+Asim
+R34
+R2
+R3
+R4
+DEx4 work 21 tb_serial_to_parallel 0 22 7ZnOAlNL0:gWSK9;n32<k2
+!i122 32
+l29
+L8 63
+VA9BnbbZG]Vh93zfTUJa830
+!s100 X_AB@SL>>3PWIoK8<A]d43
+R8
+32
+R9
+!i10b 1
+R10
+R43
+R44
+!i113 1
+R13
+R14
+Etb_uart
+Z45 w1788770701
+R2
+R3
+R4
+!i122 36
+R0
+Z46 8C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_uart/UART_tb.vhd
+Z47 FC:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_uart/UART_tb.vhd
+l0
+L14 1
+V_XLzec>@UmW45aDCB5S[[0
+!s100 FSACAQ?@S61ib<F1DD6?F1
+R8
+32
+R9
+!i10b 1
+R10
+Z48 !s90 -reportprogress|300|-work|work|-2002|-explicit|-stats=none|C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_uart/UART_tb.vhd|
+Z49 !s107 C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_uart/UART_tb.vhd|
+!i113 1
+R13
+R14
+Asim
+Z50 DEx4 work 4 uart 0 22 VfIAQD_z9CEXmzT`G8Y;U2
+R2
+R3
+R4
+Z51 DEx4 work 7 tb_uart 0 22 _XLzec>@UmW45aDCB5S[[0
+!i122 36
+l47
+Z52 L17 97
+Z53 V?l4ejb0<j2oJ5zm[?@79P2
+Z54 !s100 1fWGW;dd^mLEKRl_EmP3:3
+R8
+32
+R9
+!i10b 1
+R10
+R48
+R49
+!i113 1
+R13
+R14
+Etb_uart_rx
+Z55 w1788763235
+R2
+R3
+R4
+!i122 34
+R0
+Z56 8C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_uart_rx/UART_RX_tb.vhd
+Z57 FC:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_uart_rx/UART_RX_tb.vhd
+l0
+R7
+VfQBkMMJDQiJWlM9]TSMKI3
+!s100 QDVb76M`ZodLLl[B:m4R`1
+R8
+32
+R9
+!i10b 1
+R10
+Z58 !s90 -reportprogress|300|-work|work|-2002|-explicit|-stats=none|C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_uart_rx/UART_RX_tb.vhd|
+Z59 !s107 C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_uart_rx/UART_RX_tb.vhd|
+!i113 1
+R13
+R14
+Asim
+Z60 DEx4 work 7 uart_rx 0 22 kiaem7if5izA4eKfm1Be<3
+R2
+R3
+R4
+DEx4 work 10 tb_uart_rx 0 22 fQBkMMJDQiJWlM9]TSMKI3
+!i122 34
+l42
+L13 96
+V9g?9hI`EM`UPUQO]B3T0@0
+!s100 hEB[Hf6O:]Ih]9meTj;eB1
+R8
+32
+R9
+!i10b 1
+R10
+R58
+R59
+!i113 1
+R13
+R14
+Etb_uart_tx
+Z61 w1788712480
+R2
+R3
+R4
+!i122 27
+R0
+Z62 8C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_uart_tx/UART_TX_tb.vhd
+Z63 FC:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_uart_tx/UART_TX_tb.vhd
+l0
+L5 1
+V6?hW]8N>0BUGFn=D[]8]H3
+!s100 E<227_[eLfeG4c:m2dTOC3
+R8
+32
+R19
+!i10b 1
+R20
+Z64 !s90 -reportprogress|300|-work|work|-2002|-explicit|-stats=none|C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_uart_tx/UART_TX_tb.vhd|
+Z65 !s107 C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/sim_uart_tx/UART_TX_tb.vhd|
+!i113 1
+R13
+R14
+Asim
+Z66 DEx4 work 7 uart_tx 0 22 G<c1RzG5g2=E7D`T5hT@_0
+R2
+R3
+R4
+DEx4 work 10 tb_uart_tx 0 22 6?hW]8N>0BUGFn=D[]8]H3
+!i122 27
+l16
+L8 30
+VIP5;:Cd:f^T=UQBO[;gk?2
+!s100 W9JEReWP9ooZhCg0XI<J43
+R8
+32
+R19
+!i10b 1
+R20
+R64
+R65
+!i113 1
+R13
+R14
+Euart
+Z67 w1788768662
+R2
+R3
+R4
+!i122 35
+R0
+Z68 8C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/UART.vhd
+Z69 FC:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/UART.vhd
+l0
+L5 1
+VVfIAQD_z9CEXmzT`G8Y;U2
+!s100 TfHihE6M_LJB9[SUMGfGh1
+R8
+32
+R9
+!i10b 1
+R10
+Z70 !s90 -reportprogress|300|-work|work|-2002|-explicit|-stats=none|C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/UART.vhd|
+Z71 !s107 C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/UART.vhd|
+!i113 1
+R13
+R14
+Artl
+R60
+R66
+R2
+R3
+R4
+R50
+!i122 35
+l26
+L25 35
+V5Fcic=b_Y_c0CiAgF`Sde3
+!s100 Zf0EEPQE[c3AkmGD=Km``0
+R8
+32
+R9
+!i10b 1
+R10
+R70
+R71
+!i113 1
+R13
+R14
+Euart_rx
+Z72 w1788763230
+R2
+R3
+R4
+!i122 28
+R0
+Z73 8C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/UART_RX.vhd
+Z74 FC:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/UART_RX.vhd
+l0
+L5 1
+Vkiaem7if5izA4eKfm1Be<3
+!s100 ;_nTf[>hfZ8c0>4N9EfAI3
+R8
+32
+R19
+!i10b 1
+R20
+Z75 !s90 -reportprogress|300|-work|work|-2002|-explicit|-stats=none|C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/UART_RX.vhd|
+Z76 !s107 C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/UART_RX.vhd|
+!i113 1
+R13
+R14
+Artl
+R34
+R15
+R2
+R3
+R4
+R60
+!i122 28
+l40
+L21 150
+VNoSV?jKac_En_<[5CZ4Y]0
+!s100 jL`fIC1HofZl:P^cgOPlY0
+R8
+32
+R19
+!i10b 1
+R20
+R75
+R76
+!i113 1
+R13
+R14
+Euart_tx
+Z77 w1788763215
+R2
+R3
+R4
+!i122 31
+R0
+Z78 8C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/UART_TX.vhd
+Z79 FC:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/UART_TX.vhd
+l0
+R7
+VG<c1RzG5g2=E7D`T5hT@_0
+!s100 eGhc8FVi1?UL7Zn9D@z5]2
+R8
+32
+R9
+!i10b 1
+R10
+Z80 !s90 -reportprogress|300|-work|work|-2002|-explicit|-stats=none|C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/UART_TX.vhd|
+Z81 !s107 C:/Andrea/Eng/fpga_projects/FPGA_projects/workbench/UART/UART_TX.vhd|
+!i113 1
+R13
+R14
+Artl
+R28
+R15
+R2
+R3
+R4
+R66
+!i122 31
+l41
+L25 109
+VeKOU[`S]L]Xb=d9g6>8aX3
+!s100 5:D9LE3bR::IXAoa5bZo60
+R8
+32
+R9
+!i10b 1
+R10
+R80
+R81
+!i113 1
+R13
+R14

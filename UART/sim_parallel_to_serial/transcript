@@ -1,0 +1,14 @@
+# vsim -c tb_parallel_to_serial -do "run 1 us; quit -f" 
+# Start time: 19:12:35 on Sep 05,2026
+# Loading std.standard
+# Loading std.textio(body)
+# Loading ieee.std_logic_1164(body)
+# Loading ieee.numeric_std(body)
+# Loading work.tb_parallel_to_serial(sim)
+# Loading work.parallel_to_serial(rtl)
+# run 1 us
+# ** Note: parallel_to_serial test passed
+#    Time: 590 ns  Iteration: 0  Instance: /tb_parallel_to_serial
+#  quit -f
+# End time: 19:12:35 on Sep 05,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0

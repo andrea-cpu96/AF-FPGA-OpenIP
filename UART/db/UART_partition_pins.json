@@ -1,0 +1,109 @@
+{
+	"partitions" : [
+		{
+			"name" : "Top",
+			"pins" : [
+				{
+					"name" : "tx_busy",
+					"strict" : false
+				},
+				{
+					"name" : "rx_busy",
+					"strict" : false
+				},
+				{
+					"name" : "rx_valid",
+					"strict" : false
+				},
+				{
+					"name" : "data_rx_buff[0]",
+					"strict" : false
+				},
+				{
+					"name" : "data_rx_buff[1]",
+					"strict" : false
+				},
+				{
+					"name" : "data_rx_buff[2]",
+					"strict" : false
+				},
+				{
+					"name" : "data_rx_buff[3]",
+					"strict" : false
+				},
+				{
+					"name" : "data_rx_buff[4]",
+					"strict" : false
+				},
+				{
+					"name" : "data_rx_buff[5]",
+					"strict" : false
+				},
+				{
+					"name" : "data_rx_buff[6]",
+					"strict" : false
+				},
+				{
+					"name" : "data_rx_buff[7]",
+					"strict" : false
+				},
+				{
+					"name" : "data_line_tx",
+					"strict" : false
+				},
+				{
+					"name" : "rst_n",
+					"strict" : false
+				},
+				{
+					"name" : "clk",
+					"strict" : false
+				},
+				{
+					"name" : "w",
+					"strict" : false
+				},
+				{
+					"name" : "r",
+					"strict" : false
+				},
+				{
+					"name" : "data_tx_buff[0]",
+					"strict" : false
+				},
+				{
+					"name" : "data_line_rx",
+					"strict" : false
+				},
+				{
+					"name" : "data_tx_buff[1]",
+					"strict" : false
+				},
+				{
+					"name" : "data_tx_buff[2]",
+					"strict" : false
+				},
+				{
+					"name" : "data_tx_buff[3]",
+					"strict" : false
+				},
+				{
+					"name" : "data_tx_buff[4]",
+					"strict" : false
+				},
+				{
+					"name" : "data_tx_buff[5]",
+					"strict" : false
+				},
+				{
+					"name" : "data_tx_buff[6]",
+					"strict" : false
+				},
+				{
+					"name" : "data_tx_buff[7]",
+					"strict" : false
+				}
+			]
+		}
+	]
+}

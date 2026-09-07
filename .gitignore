@@ -1,0 +1,21 @@
+# ModelSim simulation artifacts
+work/
+transcript
+sim_transcript.log
+*.wlf
+wlft*
+_vmake
+_info
+
+# Quartus incremental compilation
+incremental_db/
+db/
+output_files/
+
+# Backup files
+*.bak
+*.vhd.bak
+
+# OS files
+Thumbs.db
+.DS_Store

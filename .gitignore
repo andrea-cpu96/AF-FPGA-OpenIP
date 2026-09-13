@@ -11,6 +11,8 @@ _info
 incremental_db/
 db/
 output_files/
+simulation/
+*.qws
 
 # Backup files
 *.bak

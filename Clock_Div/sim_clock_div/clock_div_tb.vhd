@@ -16,7 +16,7 @@
 -- G_DIVIDER is a testbench generic: sim_run.do sweeps it over 2 (minimum
 -- divider), 4 (even) and 5 (odd).
 --
--- Simulation-only file: do NOT register it in I2C_Master.qsf.
+-- Simulation-only file: do NOT register it in Clock_Div.qsf.
 
 library ieee;
 use ieee.std_logic_1164.all;

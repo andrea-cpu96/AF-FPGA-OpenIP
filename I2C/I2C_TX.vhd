@@ -36,9 +36,9 @@ architecture rtl of I2C_TX is
     signal data_out_b : std_logic;   -- raw serial bit from P2S (already registered)
 
     -- bit pacing: one bit presented per SCL falling edge
-    signal count       : natural range 0 to G_DATA_WIDTH - 1 := 0;
-    signal busy_r      : std_logic := '0';
-    signal byte_done_r : std_logic := '0';
+    signal count         : natural range 0 to G_DATA_WIDTH - 1 := 0;
+    signal busy_reg      : std_logic := '0';
+    signal byte_done_reg : std_logic := '0';
 
     -- SCL falling edge detector. scl comes from clock_div, generated
     -- registered inside this same clk domain, so no synchronizer is needed.
@@ -87,18 +87,18 @@ begin
     begin
         if rising_edge(clk) then
             if rst_n = '0' then
-                count       <= 0;
-                busy_r      <= '0';
-                byte_done_r <= '0';
+                count         <= 0;
+                busy_reg      <= '0';
+                byte_done_reg <= '0';
             else
-                byte_done_r <= '0';              -- one-clk pulse
+                byte_done_reg <= '0';              -- one-clk pulse
                 if send = '1' then
-                    count  <= 0;
-                    busy_r <= '1';
-                elsif busy_r = '1' and scl_fall = '1' then
+                    count    <= 0;
+                    busy_reg <= '1';
+                elsif busy_reg = '1' and scl_fall = '1' then
                     if count = G_DATA_WIDTH - 1 then
-                        byte_done_r <= '1';
-                        busy_r      <= '0';
+                        byte_done_reg <= '1';
+                        busy_reg      <= '0';
                     else
                         count <= count + 1;
                     end if;
@@ -111,13 +111,13 @@ begin
     -- the send pulse, `shift` presents the next bit on every falling edge in
     -- between (never on the edge that completes the byte).
     load  <= send;
-    shift <= '1' when busy_r = '1' and scl_fall = '1'
+    shift <= '1' when busy_reg = '1' and scl_fall = '1'
                       and count /= G_DATA_WIDTH - 1 else '0';
 
     -- Continuous output drivers: one driver per port. tx_bit is the P2S
     -- output, which already comes from a flip-flop.
     tx_bit    <= data_out_b;
-    byte_done <= byte_done_r;
-    busy      <= busy_r;
+    byte_done <= byte_done_reg;
+    busy      <= busy_reg;
 
 end architecture rtl;

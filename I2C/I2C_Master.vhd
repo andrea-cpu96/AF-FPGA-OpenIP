@@ -31,7 +31,7 @@ entity I2C_Master is
         addr  : in  std_logic_vector(6 downto 0);  -- 7-bit slave address
         data_to_transmit : in std_logic_vector(7 downto 0);  -- byte to write
         sda   : inout std_logic;                   -- I2C bus data (open drain)
-        scl   : out std_logic                      -- I2C bus clock
+        scl   : inout std_logic                    -- I2C bus clock (open drain)
     );
 end entity I2C_Master;
 
@@ -49,7 +49,8 @@ architecture rtl of I2C_Master is
     -- Divider output. scl is an out port and cannot be read back, so the
     -- bus clock is kept in this internal signal: it drives the pin and is
     -- what the edge detector looks at.
-    signal scl_int : std_logic;
+    signal scl_int   : std_logic;
+    signal scl_level : std_logic;
 
     -- Transaction FSM (one data byte per transaction for now):
     --   IDLE     : bus free, waiting for a request (w = write, r = read)
@@ -118,8 +119,10 @@ begin
             clk_out => scl_int
         );
 
-    -- SCL reaches the pin through a single continuous driver.
-    scl <= scl_int;
+    -- Open-drain SCL driver: low is actively driven, high is released to the
+    -- external pull-up. The resolved bus level is used internally.
+    scl <= '0' when scl_int = '0' else 'Z';
+    scl_level <= To_X01(scl);
 
     -- SDA reaches the pin through an open-drain driver: the master only pulls
     -- the line low and releases it otherwise, so it can never fight the slave.
@@ -152,7 +155,7 @@ begin
         port map (
             clk              => clk,
             rst_n            => rst_n,
-            scl              => scl_int,
+            scl              => scl_level,
             send             => tx_send_reg,
             data_to_transmit => tx_data,
             tx_bit           => tx_bit,
@@ -169,9 +172,9 @@ begin
                 scl_rise <= '0';
                 scl_fall <= '0';
             else
-                scl_prev <= scl_int;
-                scl_rise <= scl_int and not scl_prev;
-                scl_fall <= (not scl_int) and scl_prev;
+                scl_prev <= scl_level;
+                scl_rise <= scl_level and not scl_prev;
+                scl_fall <= (not scl_level) and scl_prev;
             end if;
         end if;
     end process;

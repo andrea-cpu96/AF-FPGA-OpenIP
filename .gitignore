@@ -9,6 +9,9 @@ sim_transcript.log
 modelsim.ini
 *.wlf
 wlf*
+*.vcd
+results.txt
+vsim_output.txt
 _vmake
 _info
 *.mpf
@@ -24,6 +27,9 @@ simulation/
 # Backup files
 *.bak
 *.vhd.bak
+
+# Temporary debug testbenches
+I2C/tmpack_tb.vhd
 
 # OS files
 Thumbs.db

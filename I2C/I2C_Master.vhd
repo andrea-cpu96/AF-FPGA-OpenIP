@@ -11,8 +11,8 @@
 -- SDA is an open-drain line: the master only ever pulls it low ('0') or
 -- releases it ('Z'), so START/STOP, the ACK bit and the received data all rely
 -- on the external pull-up.
--- IDLE, START, ADDR_RW, ACK_ADDR and DATA_W implemented; ACK_DATA..STOP and the
--- read path (I2C_RX) are still placeholders.
+-- IDLE, START, ADDR_RW, ACK_ADDR, DATA_W, ACK_DATA and STOP implemented;
+-- the read path (DATA_R, ACK_RX, I2C_RX) are still placeholders.
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -259,7 +259,17 @@ begin
                         end if;
 
                     when ACK_DATA =>    -- sample the slave acknowledge of the data byte
-                        null;
+                        -- SDA was released when the data byte completed (the
+                        -- registered mux holds '1' here), so the slave owns the
+                        -- line for this bit cell and pulls it low for ACK.
+                        -- Sampled throughout the SCL high phase so even a slow
+                        -- slave is caught; the FSM advances at the falling edge
+                        -- that ends the ACK bit cell.
+                        if scl_int = '1' then
+                            ack_reg <= sda_sync;
+                        elsif scl_fall = '1' then
+                            state <= STOP;
+                        end if;
 
                     when DATA_R =>      -- shift in the data byte through I2C_RX
                         null;
@@ -268,7 +278,15 @@ begin
                         null;
 
                     when STOP =>        -- SDA rises while SCL is high
-                        null;
+                        -- sda_reg is already '1' (released) from this state's
+                        -- output-mux entry, so the open-drain driver holds the
+                        -- pin in 'Z'. The external pull-up therefore raises SDA
+                        -- high now. Wait until SCL itself has risen high so both
+                        -- lines are high -- that is the I2C STOP condition -- then
+                        -- close out the transaction.
+                        if scl_rise = '1' then
+                            state <= IDLE;
+                        end if;
 
                 end case;
 
@@ -299,12 +317,18 @@ begin
         end if;
     end process;
 
-    -- Byte handed to the serialiser. The load pulse and the state that owns the
+        -- Byte handed to the serialiser. The load pulse and the state that owns the
     -- byte line up: tx_send_reg is set on the SCL falling edge that ENTERS
     -- ADDR_RW or DATA_W, so by the time I2C_TX captures the byte the registered
     -- state already selects the right one:
     --   ADDR_RW -> {addr(6:0), rw}   (slaves see A6..A0 then the R/W bit)
     --   DATA_W  -> data_to_transmit
     tx_data <= addr & rw_reg when state = ADDR_RW else data_to_transmit;
+
+    -- Open-drain SDA driver. The master only ever pulls the line low or
+    -- releases it; the external pull-up raises it to '1'. This is what lets the
+    -- slave drive the ACK bit: whenever the master holds sda_reg = '1' the pin
+    -- goes to 'Z' and the slave owns the wire.
+    sda <= '0' when sda_reg = '0' else 'Z';
 
 end architecture rtl;

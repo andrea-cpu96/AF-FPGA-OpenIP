@@ -66,6 +66,7 @@ begin
             r                => r,
             addr             => addr,
             data_to_transmit => data_to_transmit,
+            data_to_read     => open,
             sda              => sda_bus,
                 scl              => scl_bus
         );

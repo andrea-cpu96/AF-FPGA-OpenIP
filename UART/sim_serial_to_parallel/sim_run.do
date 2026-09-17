@@ -1,5 +1,5 @@
-# ModelSim BATCH flow for the S2P testbench (sweeps LSB-first and MSB-first)
-# Run from inside serial_to_parallel/:  vsim -c -do sim_run.do
+# ModelSim BATCH flow for the UART S2P testbench (sweeps LSB-first and MSB-first)
+# Run from inside UART/sim_serial_to_parallel/:  vsim -c -do sim_run.do
 transcript file sim_transcript.log
 onerror {quit -f}
 
@@ -7,7 +7,7 @@ onerror {quit -f}
 if {[file exists work/_info]} { vdel -lib work -all }
 vlib work
 
-vcom -quiet serial_to_parallel.vhd
+vcom -quiet ../serial_to_parallel.vhd
 vcom -quiet serial_to_parallel_tb.vhd
 
 # LSB-first (UART behaviour, default)

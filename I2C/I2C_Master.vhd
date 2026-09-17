@@ -4,15 +4,17 @@
 -- reusable sub-modules it orchestrates:
 --   clock_div : divides clk down to the SCL bus clock (instantiated)
 --   I2C_TX    : serialises the address/data bytes     (instantiated)
---   I2C_RX    : samples data and slave-ACK bits       (pending)
+--   I2C_RX    : de-serialises the received data byte   (instantiated)
 -- Ownership: the bus (SDA framing) belongs to this FSM alone, because I2C is
 -- half duplex on one shared wire; TX/RX only own the bit pacing of the bytes
 -- they handle and report a done flag per byte.
 -- SDA is an open-drain line: the master only ever pulls it low ('0') or
 -- releases it ('Z'), so START/STOP, the ACK bit and the received data all rely
 -- on the external pull-up.
--- IDLE, START, ADDR_RW, ACK_ADDR, DATA_W, ACK_DATA and STOP implemented;
--- the read path (DATA_R, ACK_RX, I2C_RX) are still placeholders.
+-- All nine states are implemented: the write path (IDLE, START, ADDR_RW,
+-- ACK_ADDR, DATA_W, ACK_DATA, STOP) and the read path (DATA_R + ACK_RX, which
+-- I2C_RX serves). Still pending: gating SCL at IDLE (bus idle / clock
+-- stretching) and exposing transaction status on the module ports.
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -30,6 +32,7 @@ entity I2C_Master is
         r     : in  std_logic;                     -- read request  (hold until busy = '1')
         addr  : in  std_logic_vector(6 downto 0);  -- 7-bit slave address
         data_to_transmit : in std_logic_vector(7 downto 0);  -- byte to write
+        data_to_read : out std_logic_vector(7 downto 0);    -- last complete byte read; zero on reset
         sda   : inout std_logic;                   -- I2C bus data (open drain)
         scl   : inout std_logic                    -- I2C bus clock (open drain)
     );
@@ -42,8 +45,8 @@ architecture rtl of I2C_Master is
     constant C_DIVIDER : natural := G_CLK_FREQ / G_I2C_FREQ;
 
     -- clock_div control. Placeholder: SCL runs continuously until the FSM
-    -- gates it (state = IDLE -> bus stopped), which needs the states below
-    -- to be filled in first.
+    -- gates it (state = IDLE -> bus stopped, clock stretching); the state
+    -- machine itself is complete.
     signal enable : std_logic;
 
     -- Divider output. scl is an out port and cannot be read back, so the
@@ -100,11 +103,31 @@ architecture rtl of I2C_Master is
     signal tx_byte_done : std_logic;                     -- I2C_TX: byte fully sent
     signal tx_busy      : std_logic;                     -- I2C_TX status: '1' while shifting
 
+    -- I2C_RX handshake (byte de-serialiser). I2C_RX owns the bit pacing of the
+    -- received byte and reports when it is complete; the FSM only arms it and
+    -- waits for the done flag.
+    signal rx_receive_reg : std_logic := '0';              -- one-clk pulse: arm I2C_RX for one byte
+    signal rx_data        : std_logic_vector(7 downto 0);  -- byte presented by I2C_RX
+    signal rx_byte_done   : std_logic;                     -- I2C_RX: byte captured
+    signal rx_busy        : std_logic;                     -- I2C_RX status: '1' while capturing
+
+    -- Last complete byte read off the bus, exposed through data_to_read.
+    -- Holds its value during subsequent transfers; synchronous reset clears it.
+    signal rx_data_reg : std_logic_vector(7 downto 0) := (others => '0');
+
+    -- '1' once I2C_RX reports the whole byte during DATA_R. SDA may not be
+    -- touched at that moment -- the slave still drives the last data bit until
+    -- its cell ends -- so this flag carries the event forward to the falling
+    -- edge that closes the cell, which is where the master takes the line back.
+    signal rx_done_reg : std_logic := '0';
+
     -- Registered outputs (module outputs are FF driven, glitch free)
     signal sda_reg  : std_logic := '1';   -- SDA idles high (open-drain pull-up)
     signal busy_reg : std_logic := '0';   -- '1' while a transaction is in progress
 
 begin
+
+    data_to_read <= rx_data_reg;
 
     enable <= '1';   -- placeholder: SCL always running (FSM control pending)
 
@@ -131,8 +154,13 @@ begin
     sda <= '0' when sda_reg = '0' else 'Z';
 
     -- SDA input synchroniser (2 FF): the slave drives this line asynchronously
-    -- to clk. Everything that reads SDA (the ACK sample now, the received bits
-    -- later) uses this synchronised copy, never the raw pin.
+    -- to clk. Everything that reads SDA (the ACK sample and the received bits)
+    -- uses this synchronised copy, never the raw pin.
+    -- The second stage is normalised to '0'/'1' (To_X01): the open-drain bus
+    -- resolves to 'H' for a released line, and 'H' is not '1' for std_logic
+    -- comparisons -- a received bit would otherwise end up sitting in the RX
+    -- register as a weak 'H' instead of a clean '1'. Same reason the SCL level
+    -- is X01'd above.
     process(clk)
     begin
         if rising_edge(clk) then
@@ -141,7 +169,7 @@ begin
                 sda_sync <= '1';
             else
                 sda_meta <= sda;
-                sda_sync <= sda_meta;
+                sda_sync <= To_X01(sda_meta);
             end if;
         end if;
     end process;
@@ -161,6 +189,25 @@ begin
             tx_bit           => tx_bit,
             byte_done        => tx_byte_done,
             busy             => tx_busy
+        );
+
+    -- Byte de-serialiser: samples one byte MSB first (I2C bit order), pacing
+    -- itself on the SCL RISING edges -- data is valid then -- and fed from the
+    -- synchronised SDA copy, never the raw pin. It never touches the bus
+    -- framing.
+    u_rx : entity work.I2C_RX
+        generic map (
+            G_DATA_WIDTH => 8
+        )
+        port map (
+            clk           => clk,
+            rst_n         => rst_n,
+            scl           => scl_level,
+            receive       => rx_receive_reg,
+            sda_in        => sda_sync,
+            data_received => rx_data,
+            byte_done     => rx_byte_done,
+            busy          => rx_busy
         );
 
     -- SCL edge detector: one-clk-wide pulses in the system clock domain.
@@ -187,12 +234,16 @@ begin
     begin
         if rising_edge(clk) then
             if rst_n = '0' then
-                state       <= IDLE;
-                sda_reg     <= '1';   -- SDA released (high) on reset
-                busy_reg    <= '0';
-                tx_send_reg <= '0';
+                state         <= IDLE;
+                sda_reg       <= '1';   -- SDA released (high) on reset
+                busy_reg      <= '0';
+                tx_send_reg   <= '0';
+                rx_receive_reg <= '0';
+                rx_data_reg   <= (others => '0');
+                rx_done_reg   <= '0';
             else
-                tx_send_reg <= '0';   -- one-clk pulse: set when a byte is handed over
+                tx_send_reg   <= '0';   -- one-clk pulse: set when a byte is handed over
+                rx_receive_reg <= '0';  -- one-clk pulse: set when RX is armed
 
                 case state is
 
@@ -247,7 +298,9 @@ begin
                                 state       <= DATA_W;
                                 tx_send_reg <= '1';   -- hand over the data byte
                             else
-                                state <= DATA_R;
+                                state          <= DATA_R;
+                                rx_receive_reg <= '1';  -- arm I2C_RX for the byte
+                                rx_done_reg    <= '0';  -- no byte captured yet
                             end if;
                         end if;
 
@@ -274,11 +327,42 @@ begin
                             state <= STOP;
                         end if;
 
-                    when DATA_R =>      -- shift in the data byte through I2C_RX
-                        null;
+                    when DATA_R =>
+                        -- I2C_RX owns this byte: it was armed on entry (see
+                        -- ACK_ADDR) and samples one bit per SCL rising edge,
+                        -- MSB first, while the slave drives the line. Its
+                        -- byte_done pulses on the rising edge that captures
+                        -- the LAST bit, i.e. still inside the final data bit
+                        -- cell, so the byte is latched and rx_done_reg is set
+                        -- here, but SDA is left alone: the slave still owns it
+                        -- until the falling edge that closes the cell. That
+                        -- edge is where the master takes the line back for the
+                        -- acknowledge, just like the TX states hand SDA over on
+                        -- the edges they watch.
+                        -- The byte spans G_DATA_WIDTH bit cells, so this state
+                        -- must NOT leave on the first falling edge it sees --
+                        -- that one only closes the first data bit. It waits for
+                        -- rx_done_reg, i.e. for the whole byte.
+                        if rx_byte_done = '1' then
+                            rx_data_reg <= rx_data;
+                            rx_done_reg <= '1';
+                        end if;
 
-                    when ACK_RX =>      -- master drives ACK/NACK for the received byte
-                        null;
+                        if rx_done_reg = '1' and scl_fall = '1' then
+                            state <= ACK_RX;
+                        end if;
+
+                    when ACK_RX =>
+                        -- The registered output mux holds SDA low for this whole
+                        -- bit cell, so the slave samples the master acknowledge:
+                        -- the byte was taken. (A multi-byte read would leave SDA
+                        -- released here instead -- NACK -- for the last byte.)
+                        -- No sampling is needed in the master: only the edge
+                        -- that ends the cell matters, and that is where the STOP
+                        -- condition begins.
+                        if scl_fall = '1' then
+                            state <= STOP;
+                        end if;
 
                     when STOP =>        -- SDA rises while SCL is high
                         -- sda_reg is already '1' (released) from this state's
@@ -320,18 +404,12 @@ begin
         end if;
     end process;
 
-        -- Byte handed to the serialiser. The load pulse and the state that owns the
+    -- Byte handed to the serialiser. The load pulse and the state that owns the
     -- byte line up: tx_send_reg is set on the SCL falling edge that ENTERS
     -- ADDR_RW or DATA_W, so by the time I2C_TX captures the byte the registered
     -- state already selects the right one:
     --   ADDR_RW -> {addr(6:0), rw}   (slaves see A6..A0 then the R/W bit)
     --   DATA_W  -> data_to_transmit
     tx_data <= addr & rw_reg when state = ADDR_RW else data_to_transmit;
-
-    -- Open-drain SDA driver. The master only ever pulls the line low or
-    -- releases it; the external pull-up raises it to '1'. This is what lets the
-    -- slave drive the ACK bit: whenever the master holds sda_reg = '1' the pin
-    -- goes to 'Z' and the slave owns the wire.
-    sda <= '0' when sda_reg = '0' else 'Z';
 
 end architecture rtl;

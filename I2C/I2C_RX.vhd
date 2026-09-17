@@ -47,12 +47,13 @@ begin
 
     -- The slave presents each data bit while SCL is low and it is valid during
     -- the following high phase, so the sample point is the SCL rising edge.
-    -- serial_to_parallel shifts in at position 0 and pushes the earlier bits
-    -- up, which is exactly the MSB-first order I2C uses: after G_DATA_WIDTH
-    -- shifts bit 7 holds the first received bit (the MSB).
+    -- serial_to_parallel is used in its MSB-first mode (the I2C bit order): the
+    -- first bit received -- the byte's MSB -- ends up in bit
+    -- G_DATA_WIDTH-1, so the byte comes out in the order the slave sent it.
     u_s2p : entity work.serial_to_parallel
         generic map (
-            G_DATA_WIDTH => G_DATA_WIDTH
+            G_DATA_WIDTH => G_DATA_WIDTH,
+            G_MSB_FIRST  => true       -- I2C receives the MSB first
         )
         port map (
             clk      => clk,

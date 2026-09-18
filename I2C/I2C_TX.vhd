@@ -43,7 +43,7 @@ architecture rtl of I2C_TX is
     -- SCL falling edge detector. scl comes from clock_div, generated
     -- registered inside this same clk domain, so no synchronizer is needed.
     signal scl_prev : std_logic := '1';
-    signal scl_fall : std_logic := '0';
+    signal scl_fall : std_logic;
 
 begin
 
@@ -61,21 +61,21 @@ begin
             data_out => data_out_b
         );
 
-    -- SCL falling edge detector: one-clk-wide pulse in the system clock
-    -- domain. I2C data may only change while SCL is low, so these pulses
-    -- drive the whole bit pacing.
+    -- SCL falling edge detector.  The pulse is combinational from the
+    -- registered SCL history so the serializer reacts on the first clk edge
+    -- after the bus edge, without an extra detector-cycle delay.
     process(clk)
     begin
         if rising_edge(clk) then
             if rst_n = '0' then
                 scl_prev <= '1';
-                scl_fall <= '0';
             else
                 scl_prev <= scl;
-                scl_fall <= (not scl) and scl_prev;
             end if;
         end if;
     end process;
+
+    scl_fall <= ((not scl) and scl_prev) when rst_n = '1' else '0';
 
     -- Bit pacing. `send` captures the byte so its MSB is presented straight
     -- away; every following SCL falling edge shifts one more bit out, and the

@@ -41,7 +41,7 @@ architecture rtl of I2C_RX is
     -- SCL rising edge detector. scl comes from clock_div, generated
     -- registered inside this same clk domain, so no synchronizer is needed.
     signal scl_prev : std_logic := '0';
-    signal scl_rise : std_logic := '0';
+    signal scl_rise : std_logic;
 
 begin
 
@@ -63,19 +63,21 @@ begin
             data_out => data_received
         );
 
-    -- SCL rising edge detector: one-clk-wide pulse in the system clock domain.
+    -- SCL rising edge detector.  The pulse is combinational from the
+    -- registered SCL history so capture reacts on the first clk edge after
+    -- the bus edge, without an extra detector-cycle delay.
     process(clk)
     begin
         if rising_edge(clk) then
             if rst_n = '0' then
                 scl_prev <= '0';
-                scl_rise <= '0';
             else
                 scl_prev <= scl;
-                scl_rise <= scl and not scl_prev;
             end if;
         end if;
     end process;
+
+    scl_rise <= (scl and not scl_prev) when rst_n = '1' else '0';
 
     -- Bit pacing. `receive` arms the capture; every following SCL rising edge
     -- samples one more bit, and the 8th one both samples the last bit and

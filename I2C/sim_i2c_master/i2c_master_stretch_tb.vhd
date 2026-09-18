@@ -41,7 +41,10 @@ begin
         port map (
             clk => clk, rst_n => rst_n, w => '0', r => r,
             addr => C_ADDR, data_to_transmit => x"00",
-            data_to_read => data_to_read, sda => sda_bus, scl => scl_bus
+            n_write => "0000", n_read => "0001",
+            data_to_read => data_to_read, sda => sda_bus, scl => scl_bus,
+            tx_done => open, rx_valid => open,
+            busy => open, ack => open
         );
 
     -- Slave: ACKs the address while stretching SCL, then sends one data byte.
@@ -90,11 +93,13 @@ begin
         wait until (data_to_read = C_DATA) for 300 us;
         assert data_to_read = C_DATA
             report "Stretched transaction did not deliver the byte" severity failure;
-        -- master acknowledge: SDA pulled low for the ACK bit cell
-        wait until falling_edge(sda_bus) for 100 us;
+        -- Single read byte = last byte: the master must NACK it (SDA stays
+        -- released through the ACK cell), which is what lets the slave stop
+        -- driving the line before the STOP.
+        wait until falling_edge(scl_bus) for 100 us;   -- data cell ends
         wait for C_SETTLE;
-        assert To_X01(sda_bus) = '0'
-            report "Master acknowledge not driven" severity failure;
+        assert To_X01(sda_bus) = '1'
+            report "Master did not NACK the last (only) read byte" severity failure;
         -- back at IDLE: SCL gated off, both lines released high
         wait for 30 us;
         assert scl_bus = 'H' and sda_bus = 'H'

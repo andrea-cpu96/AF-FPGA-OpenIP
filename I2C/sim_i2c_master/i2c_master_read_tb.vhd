@@ -28,7 +28,10 @@ begin
         port map (
             clk => clk, rst_n => rst_n, w => '0', r => r,
             addr => C_ADDR, data_to_transmit => x"00",
-            data_to_read => data_to_read, sda => sda_bus, scl => scl_bus
+            n_write => "0000", n_read => "0001",
+            data_to_read => data_to_read, sda => sda_bus, scl => scl_bus,
+            tx_done => open, rx_valid => open,
+            busy => open, ack => open
         );
 
     stim : process

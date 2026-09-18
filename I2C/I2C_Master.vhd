@@ -11,12 +11,17 @@
 -- SDA is an open-drain line: the master only ever pulls it low ('0') or
 -- releases it ('Z'), so START/STOP, the ACK bit and the received data all rely
 -- on the external pull-up.
--- All nine states are implemented: the write path (IDLE, START, ADDR_RW,
--- ACK_ADDR, DATA_W, ACK_DATA, STOP) and the read path (DATA_R + ACK_RX, which
--- I2C_RX serves). SCL is gated off at IDLE -- the bus is released high between
--- transactions -- and the FSM is timed on the real bus edges, so a slave
--- holding SCL low (clock stretching) simply delays every following edge.
--- Still pending: exposing transaction status on the module ports.
+-- Transaction states cover START/STOP timing, the write path (IDLE, START,
+-- ADDR_RW, ACK_ADDR, DATA_W, ACK_DATA, STOP) and the read path (DATA_R + ACK_RX, which
+-- I2C_RX serves). A transaction carries n_write data bytes and, through a
+-- REPEATED START (RSTART re-enters START mid-transaction), n_read data bytes
+-- after re-addressing the slave with R/W = 1 -- the classic "write a register
+-- pointer, then read it back" idiom. data_to_transmit is streamed: update it
+-- on each tx_done pulse; data_to_read is drained one byte per rx_valid pulse.
+-- SCL is gated off at IDLE -- the bus is released high between transactions --
+-- and the FSM is timed on the real bus edges, so a slave holding SCL low
+-- (clock stretching) simply delays every following edge.
+-- busy and ack expose the transaction state and most recently sampled slave ACK.
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -33,8 +38,14 @@ entity I2C_Master is
         w     : in  std_logic;                     -- write request (hold until busy = '1')
         r     : in  std_logic;                     -- read request  (hold until busy = '1')
         addr  : in  std_logic_vector(6 downto 0);  -- 7-bit slave address
-        data_to_transmit : in std_logic_vector(7 downto 0);  -- byte to write
+        data_to_transmit : in std_logic_vector(7 downto 0);  -- byte to write (next byte while tx_done pulses)
+        n_write : in std_logic_vector(3 downto 0) := "0001"; -- data bytes in the write phase (0 = none)
+        n_read  : in std_logic_vector(3 downto 0) := "0000"; -- data bytes to read after the repeated START (0 = none)
         data_to_read : out std_logic_vector(7 downto 0);    -- last complete byte read; zero on reset
+        tx_done  : out std_logic;                  -- pulse: byte fully serialized -> update data_to_transmit
+        rx_valid : out std_logic;                  -- pulse: a complete read byte landed in data_to_read
+        busy     : out std_logic;                  -- '1' while a transaction is in progress
+        ack      : out std_logic;                  -- last sampled slave ACK: '0' ACK, '1' NACK
         sda   : inout std_logic;                   -- I2C bus data (open drain)
         scl   : inout std_logic                    -- I2C bus clock (open drain)
     );
@@ -43,13 +54,35 @@ end entity I2C_Master;
 
 architecture rtl of I2C_Master is
 
-    -- SCL divider: system clock cycles per SCL period
-    constant C_DIVIDER : natural := G_CLK_FREQ / G_I2C_FREQ;
+    -- Keep elaboration safe long enough for the parameter assertions below to
+    -- report a useful error instead of failing in a divide-by-zero or invalid
+    -- clock_div generic map.
+    function safe_divider(clk_freq : natural; i2c_freq : natural) return positive is
+        variable d : natural;
+    begin
+        if i2c_freq = 0 or clk_freq < 2 * i2c_freq then
+            return 2;
+        end if;
+        d := clk_freq / i2c_freq;
+        if d < 2 then
+            return 2;
+        end if;
+        return d;
+    end function;
 
-    -- START hold time, in clk cycles: after the SDA fall of the START
-    -- condition, SCL stays high for half an SCL period before the first SCL
-    -- fall. The free-running divider used to give the same hold.
-    constant C_START_HOLD : natural := C_DIVIDER / 2;
+    -- SCL divider: system clock cycles per SCL period
+    constant C_DIVIDER : natural := safe_divider(G_CLK_FREQ, G_I2C_FREQ);
+
+    -- Half-period in clk cycles.  It is used for START setup, repeated-START
+    -- setup, STOP setup and the post-STOP bus-free interval.  With the default
+    -- 100 kHz bus this is 250 clk cycles = 5 us.
+    constant C_HALF_PERIOD : natural := (C_DIVIDER + 1) / 2;
+
+    -- Standard-mode minimum setup is 4.7 us for repeated START and STOP.
+    -- The divider's high phase is 5 us at 100 kHz, so use 94% of that phase
+    -- to leave room for the synchronous edge-detection/output latency while
+    -- still meeting the timing requirement.
+    constant C_SETUP_HOLD : natural := (C_HALF_PERIOD * 15 + 15) / 16;
 
     -- clock_div control, gated by scl_en_r: the divider runs only during a
     -- transaction. clock_div parks its output low while disabled, so the
@@ -73,20 +106,24 @@ architecture rtl of I2C_Master is
 
     -- START hold counter: counts clk cycles in START to time the release of
     -- scl_en_r (START condition hold = half an SCL period).
-    signal start_cnt : natural range 0 to C_START_HOLD := 0;
+    signal start_cnt : natural range 0 to C_HALF_PERIOD := 0;
+    signal bus_free_cnt : natural range 0 to C_HALF_PERIOD := C_HALF_PERIOD;
 
-    -- Transaction FSM (one data byte per transaction for now):
+    -- Transaction FSM (multi-byte, two phases per request: n_write bytes are
+    -- written first, then -- through a repeated START -- n_read bytes read):
     --   IDLE     : bus free, waiting for a request (w = write, r = read)
     --   START    : START condition -- SDA falls while SCL is high
     --   ADDR_RW  : shift out the address byte, {addr(6:0), rw}
     --   ACK_ADDR : release SDA and sample the slave acknowledge
-    --   DATA_W   : shift out the data byte (write transaction)
-    --   ACK_DATA : sample the slave acknowledge of that data byte
-    --   DATA_R   : shift in the data byte (read transaction)
-    --   ACK_RX   : master drives ACK/NACK for the received byte
+    --   DATA_W   : shift out a data byte (write phase, n_write bytes)
+    --   ACK_DATA : sample the slave ACK; branch: more bytes / Sr / STOP
+    --   DATA_R   : shift in a data byte (read phase, n_read bytes)
+    --   ACK_RX   : master ACK (more bytes follow) or NACK (last byte)
+    --   RSTART   : repeated START -- like START, but SCL is already running
     --   STOP     : STOP condition -- SDA rises while SCL is high
     type state_t is (IDLE, START, ADDR_RW, ACK_ADDR, DATA_W, ACK_DATA,
-                     DATA_R, ACK_RX, STOP);
+                     DATA_R, ACK_RX, RSTART, RSTART_HOLD, STOP, STOP_HOLD,
+                     STOP_RELEASE);
     signal state : state_t := IDLE;
 
     -- Direction of the current transaction, latched when the request is
@@ -94,6 +131,24 @@ architecture rtl of I2C_Master is
     -- DATA_W and DATA_R), so it must not change mid-transaction. It is also
     -- bit 0 of the address byte: {addr(6:0), rw}.
     signal rw_reg : std_logic := '0';
+
+    -- Address is captured with the request.  The host may change addr after
+    -- acceptance without corrupting the byte currently on the bus.
+    signal addr_reg : std_logic_vector(6 downto 0) := (others => '0');
+
+    -- A request is accepted once, then must be released before another
+    -- transaction can start.  This prevents a held request level from
+    -- retriggering immediately after STOP.
+    signal request_armed : std_logic := '1';
+
+    -- Per-phase byte counters, loaded from the n_write / n_read ports when
+    -- the request is accepted. wr_left counts the write-phase bytes still to
+    -- send (the current one included); rd_left the read-phase bytes still to
+    -- receive. They steer the ACK_DATA / ACK_RX branches: continue the phase,
+    -- go through the repeated START, or close with STOP. ACK_RX NACKs when
+    -- rd_left = 1, i.e. on the LAST read byte, so the slave releases the bus.
+    signal wr_left : natural range 0 to 15 := 0;
+    signal rd_left : natural range 0 to 15 := 0;
 
     -- Slave acknowledge, sampled during the ACK bit cell: '0' = ACK, '1' = NACK
     -- (its idle value). Kept as status -- it will be exposed with the status
@@ -112,8 +167,8 @@ architecture rtl of I2C_Master is
     -- on these, never by clocking logic with SCL itself, so the design stays
     -- single clock.
     signal scl_prev : std_logic := '1';
-    signal scl_rise : std_logic := '0';
-    signal scl_fall : std_logic := '0';
+    signal scl_rise : std_logic;
+    signal scl_fall : std_logic;
 
     -- I2C_TX handshake (byte serialiser). I2C_TX owns the bit pacing and
     -- reports when a byte is complete; the FSM only hands bytes over.
@@ -147,7 +202,22 @@ architecture rtl of I2C_Master is
 
 begin
 
+    assert G_I2C_FREQ > 0
+        report "G_I2C_FREQ must be greater than zero" severity failure;
+    assert G_CLK_FREQ >= 2 * G_I2C_FREQ
+        report "G_CLK_FREQ must be at least twice G_I2C_FREQ" severity failure;
+
     data_to_read <= rx_data_reg;
+    busy         <= busy_reg;
+    ack          <= ack_reg;
+
+    -- Streaming handshakes: tx_done pulses when a byte (the address or a
+    -- data byte) has been fully serialized -- update data_to_transmit for
+    -- the next write byte when it fires; the FSM captures it at the next
+    -- DATA_W handover, a full bit cell later. rx_valid pulses when a
+    -- complete read byte has landed in data_to_read -- consume it then.
+    tx_done  <= tx_byte_done;
+    rx_valid <= rx_byte_done;
 
     -- The divider runs only while scl_en_r is high: parked (output low) at
     -- IDLE and during the START hold, phase-aligned restart on release.
@@ -236,21 +306,22 @@ begin
             busy          => rx_busy
         );
 
-    -- SCL edge detector: one-clk-wide pulses in the system clock domain.
+    -- SCL edge detector: combinational pulses from the registered SCL history.
+    -- This avoids an unnecessary extra clk of latency between a bus edge and
+    -- the FSM response, especially at the ACK-to-data handoff.
     process(clk)
     begin
         if rising_edge(clk) then
             if rst_n = '0' then
                 scl_prev <= '1';
-                scl_rise <= '0';
-                scl_fall <= '0';
             else
                 scl_prev <= scl_level;
-                scl_rise <= scl_level and not scl_prev;
-                scl_fall <= (not scl_level) and scl_prev;
             end if;
         end if;
     end process;
+
+    scl_rise <= (scl_level and not scl_prev) when rst_n = '1' else '0';
+    scl_fall <= ((not scl_level) and scl_prev) when rst_n = '1' else '0';
 
     -- Transaction FSM: state and registered outputs update on the rising
     -- clock edge. Every state advances on the real bus edge pulses detected
@@ -269,6 +340,12 @@ begin
                 rx_done_reg   <= '0';
                 scl_en_r      <= '0';   -- SCL released while resetting
                 start_cnt     <= 0;
+                bus_free_cnt  <= C_HALF_PERIOD;
+                wr_left       <= 0;
+                rd_left       <= 0;
+                addr_reg      <= (others => '0');
+                request_armed <= '1';
+                ack_reg       <= '1';
             else
                 tx_send_reg   <= '0';   -- one-clk pulse: set when a byte is handed over
                 rx_receive_reg <= '0';  -- one-clk pulse: set when RX is armed
@@ -301,10 +378,21 @@ begin
                         -- SCL is high. The hold counter is parked at zero so
                         -- every START times the full hold.
                         start_cnt <= 0;
-                        if (w = '1' or r = '1') and scl_level = '1'
+                        if bus_free_cnt < C_HALF_PERIOD then
+                            bus_free_cnt <= bus_free_cnt + 1;
+                        end if;
+                        if w = '0' and r = '0' then
+                            request_armed <= '1';
+                        end if;
+                        if request_armed = '1' and bus_free_cnt = C_HALF_PERIOD
+                           and (w = '1' or r = '1') and scl_level = '1'
                            and sda_sync = '1' then
-                            rw_reg <= r;
-                            state  <= START;
+                             rw_reg  <= r;
+                             wr_left <= to_integer(unsigned(n_write));
+                             rd_left <= to_integer(unsigned(n_read));
+                             addr_reg <= addr;
+                             request_armed <= '0';
+                             state   <= START;
                         end if;
 
                     when START =>
@@ -318,7 +406,7 @@ begin
                         -- that real falling edge the address byte is handed
                         -- to I2C_TX, which presents its first bit there
                         -- (tx_send, below).
-                        if start_cnt = C_START_HOLD - 1 then
+                        if start_cnt = C_HALF_PERIOD - 1 then
                             scl_en_r  <= '1';   -- SCL pull-down from here on
                             start_cnt <= 0;
                         else
@@ -328,10 +416,8 @@ begin
                             state       <= ADDR_RW;
                             tx_send_reg <= '1';   -- hand over {addr, rw}
                             -- Leave the counter at zero: it keeps counting
-                            -- during the 2 clk it takes the edge detector to
-                            -- report the fall, and a frozen residue would make
-                            -- the NEXT START hold shorter (or overflow the
-                            -- range for small dividers).
+                            -- A fresh counter value makes every later START
+                            -- timing independent of the previous transaction.
                             start_cnt   <= 0;
                         end if;
 
@@ -362,13 +448,34 @@ begin
                         if scl_level = '1' then
                             ack_reg <= sda_sync;
                         elsif scl_fall = '1' then
-                            if rw_reg = '0' then
-                                state       <= DATA_W;
-                                tx_send_reg <= '1';   -- hand over the data byte
+                            if ack_reg = '1' then
+                                -- Address NACK: terminate cleanly without
+                                -- sending any data bytes.
+                                state <= STOP;
+                            elsif rw_reg = '0' then
+                            -- The phase counters steer the branch: enter a
+                            -- data phase only if its count is non-zero (a
+                            -- request with both counts at zero is a bare
+                            -- address probe -> STOP).
+                                if wr_left > 0 then
+                                    wr_left     <= wr_left - 1;
+                                    state       <= DATA_W;
+                                    tx_send_reg <= '1';   -- hand over the first data byte
+                                elsif rd_left > 0 then
+                                    state     <= RSTART;     -- nothing to write: Sr straight to the read phase
+                                    rw_reg    <= '1';
+                                    start_cnt <= 0;
+                                else
+                                    state <= STOP;
+                                end if;
                             else
-                                state          <= DATA_R;
-                                rx_receive_reg <= '1';  -- arm I2C_RX for the byte
-                                rx_done_reg    <= '0';  -- no byte captured yet
+                                if rd_left > 0 then
+                                    state          <= DATA_R;
+                                    rx_receive_reg <= '1';  -- arm I2C_RX for the byte
+                                    rx_done_reg    <= '0';  -- no byte captured yet
+                                else
+                                    state <= STOP;
+                                end if;
                             end if;
                         end if;
 
@@ -390,11 +497,32 @@ begin
                         -- phase (see ACK_ADDR -- this also rides out a clock
                         -- stretch) so even a slow slave is caught; the FSM
                         -- advances at the falling edge that ends the ACK bit
-                        -- cell.
+                        -- cell. Three ways out: more write bytes (next DATA_W
+                        -- handover), the read phase still pending (repeated
+                        -- START, direction flips to R), or the transaction
+                        -- ends (STOP). A NACK aborts the remaining phases.
                         if scl_level = '1' then
                             ack_reg <= sda_sync;
                         elsif scl_fall = '1' then
-                            state <= STOP;
+                            if ack_reg = '1' then
+                                -- Data NACK: abort the remaining phases and
+                                -- close this transaction with STOP.
+                                state <= STOP;
+                            elsif wr_left > 0 then
+                            -- wr_left counts the write bytes not yet handed
+                            -- over: hand over the next one while any remain
+                            -- (this also sends the FIRST byte, right here at
+                            -- the end of the address ACK cell).
+                                wr_left     <= wr_left - 1;
+                                state       <= DATA_W;
+                                tx_send_reg <= '1';   -- hand over the next data byte
+                            elsif rd_left > 0 then
+                                state     <= RSTART;   -- repeated START leads to the read phase
+                                rw_reg    <= '1';      -- the address byte is re-sent with R/W = 1
+                                start_cnt <= 0;
+                            else
+                                state <= STOP;
+                            end if;
                         end if;
 
                     when DATA_R =>
@@ -423,26 +551,80 @@ begin
                         end if;
 
                     when ACK_RX =>
-                        -- The registered output mux holds SDA low for this whole
-                        -- bit cell, so the slave samples the master acknowledge:
-                        -- the byte was taken. (A multi-byte read would leave SDA
-                        -- released here instead -- NACK -- for the last byte.)
-                        -- No sampling is needed in the master: only the edge
-                        -- that ends the cell matters, and that is where the STOP
-                        -- condition begins.
+                        -- The registered output mux holds SDA low for this bit
+                        -- cell while more read bytes follow (ACK), or released
+                        -- on the last one (NACK -- the slave must see it to
+                        -- stop driving the line). On the cell's closing edge:
+                        -- more read bytes re-arm I2C_RX for the next one, a
+                        -- write phase still pending goes through a repeated
+                        -- START, otherwise the STOP condition begins.
                         if scl_fall = '1' then
-                            state <= STOP;
+                            if rd_left > 1 then
+                                rd_left        <= rd_left - 1;
+                                state          <= DATA_R;
+                                rx_receive_reg <= '1';  -- arm I2C_RX for the next byte
+                                rx_done_reg    <= '0';
+                            elsif wr_left > 0 then
+                                state     <= RSTART;   -- repeated START (e.g. R then W phase)
+                                rw_reg    <= '0';      -- the address byte is re-sent with R/W = 0
+                                start_cnt <= 0;
+                            else
+                                state <= STOP;
+                            end if;
                         end if;
 
-                    when STOP =>        -- SDA rises while SCL is high
-                        -- sda_reg is already '1' (released) from this state's
-                        -- output-mux entry, so the open-drain driver holds the
-                        -- pin in 'Z'. The external pull-up therefore raises SDA
-                        -- high now. Wait until SCL itself has risen high so both
-                        -- lines are high -- that is the I2C STOP condition -- then
-                        -- close out the transaction.
+                    when RSTART =>
+                        -- Wait for the real SCL rising edge before beginning
+                        -- the repeated-START setup-time interval. SDA remains
+                        -- released throughout this state.
                         if scl_rise = '1' then
-                            state <= IDLE;
+                            start_cnt <= 0;
+                            state     <= RSTART_HOLD;
+                        end if;
+
+                    when RSTART_HOLD =>
+                        -- Hold SCL high and SDA released for at least one
+                        -- half-period (5 us at 100 kHz) before pulling SDA
+                        -- low. This satisfies tSU;STA for a repeated START.
+                        if scl_level = '0' then
+                            start_cnt <= 0;
+                            state     <= RSTART;
+                        elsif start_cnt = C_SETUP_HOLD - 1 then
+                            start_cnt <= 0;
+                            state     <= START;
+                        else
+                            start_cnt <= start_cnt + 1;
+                        end if;
+
+                    when STOP =>
+                        -- STOP begins with SDA held low. Wait for the actual
+                        -- SCL rising edge, including any clock stretching.
+                        if scl_rise = '1' then
+                            start_cnt <= 0;
+                            state     <= STOP_HOLD;
+                        end if;
+
+                    when STOP_HOLD =>
+                        -- Keep SDA low while SCL is high for the STOP setup
+                        -- interval (tSU;STO), then release it to create the
+                        -- actual SDA rising edge of STOP.
+                        if scl_level = '0' then
+                            start_cnt <= 0;
+                            state     <= STOP;
+                        elsif start_cnt = C_SETUP_HOLD - 1 then
+                            start_cnt <= 0;
+                            state     <= STOP_RELEASE;
+                        else
+                            start_cnt <= start_cnt + 1;
+                        end if;
+
+                    when STOP_RELEASE =>
+                        -- SDA is released by the output mux in this state.
+                        -- Wait until the synchronized bus level confirms the
+                        -- line rose, then enter IDLE and enforce tBUF.
+                        if scl_level = '1' and sda_sync = '1' then
+                            bus_free_cnt <= 0;
+                            state        <= IDLE;
                         end if;
 
                 end case;
@@ -457,11 +639,68 @@ begin
                 case state is
                     when IDLE             => sda_reg <= '1';
                     when START            => sda_reg <= '0';
-                    when ADDR_RW | DATA_W => sda_reg <= tx_bit;
-                    when ACK_ADDR | ACK_DATA => sda_reg <= '1';
-                    when DATA_R           => sda_reg <= '1';
-                    when ACK_RX           => sda_reg <= '0';  -- ACK (NACK when no more bytes)
-                    when STOP             => sda_reg <= '1';
+                    when ADDR_RW | DATA_W =>
+                        -- Release SDA on the falling edge that completes the
+                        -- byte, so the slave owns the ACK cell immediately.
+                        -- On the first cycle after tx_send_reg, I2C_TX is still
+                        -- loading its registered serial output.  Use the byte
+                        -- MSB directly for that cycle; otherwise a stale '1'
+                        -- from tx_bit can make a short pulse before a leading
+                        -- zero appears on SDA.
+                        if tx_send_reg = '1' then
+                            sda_reg <= tx_data(7);
+                        elsif tx_byte_done = '1' then
+                            sda_reg <= '1';
+                        else
+                            sda_reg <= tx_bit;
+                        end if;
+                    when ACK_ADDR =>
+                        -- The slave releases SDA at the end of the address
+                        -- ACK cell.  If a write byte follows, present its MSB
+                        -- on that same bus-low boundary instead of waiting for
+                        -- I2C_TX's registered load path; otherwise a short
+                        -- released-SDA pulse appears before a leading '0'.
+                        if scl_fall = '1' and rw_reg = '0' and wr_left > 0 then
+                            sda_reg <= data_to_transmit(7);
+                        else
+                            sda_reg <= '1';
+                        end if;
+                    when ACK_DATA =>
+                        -- Same handoff for consecutive write bytes.  The next
+                        -- byte is already available on data_to_transmit when
+                        -- tx_done is used as the streaming handover.
+                        if scl_fall = '1' and wr_left > 0 then
+                            sda_reg <= data_to_transmit(7);
+                        else
+                            sda_reg <= '1';
+                        end if;
+                    when DATA_R           =>
+                        -- Select the master's ACK/NACK as DATA_R hands the
+                        -- bus to ACK_RX; do not leave a one-clk SDA gap.
+                        if rx_done_reg = '1' and scl_fall = '1' then
+                            if rd_left > 1 then
+                                sda_reg <= '0';
+                            else
+                                sda_reg <= '1';
+                            end if;
+                        else
+                            sda_reg <= '1';
+                        end if;
+                    when ACK_RX           =>
+                        -- ACK for every read byte except the last one (the
+                        -- byte still counted in rd_left): the NACK tells the
+                        -- slave to release SDA so the master can frame the
+                        -- STOP.
+                        if rd_left = 1 then
+                            sda_reg <= '1';     -- NACK on the last read byte
+                        else
+                            sda_reg <= '0';     -- ACK, more bytes follow
+                        end if;
+                    when RSTART           => sda_reg <= '1';  -- released while waiting for SCL high
+                    when RSTART_HOLD     => sda_reg <= '1';  -- released during tSU;STA
+                    when STOP            => sda_reg <= '0';  -- hold low until SCL rises
+                    when STOP_HOLD       => sda_reg <= '0';  -- hold low for tSU;STO
+                    when STOP_RELEASE    => sda_reg <= '1';  -- release: the actual STOP edge
                 end case;
 
                 -- Registered status output
@@ -480,6 +719,6 @@ begin
     -- state already selects the right one:
     --   ADDR_RW -> {addr(6:0), rw}   (slaves see A6..A0 then the R/W bit)
     --   DATA_W  -> data_to_transmit
-    tx_data <= addr & rw_reg when state = ADDR_RW else data_to_transmit;
+    tx_data <= addr_reg & rw_reg when state = ADDR_RW else data_to_transmit;
 
 end architecture rtl;

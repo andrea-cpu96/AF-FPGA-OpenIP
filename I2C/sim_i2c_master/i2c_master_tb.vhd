@@ -67,6 +67,10 @@ begin
             addr             => addr,
             data_to_transmit => data_to_transmit,
             data_to_read     => open,
+            tx_done          => open,
+            rx_valid         => open,
+            busy             => open,
+            ack              => open,
             sda              => sda_bus,
                 scl              => scl_bus
         );

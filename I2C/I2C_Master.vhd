@@ -13,8 +13,10 @@
 -- on the external pull-up.
 -- All nine states are implemented: the write path (IDLE, START, ADDR_RW,
 -- ACK_ADDR, DATA_W, ACK_DATA, STOP) and the read path (DATA_R + ACK_RX, which
--- I2C_RX serves). Still pending: gating SCL at IDLE (bus idle / clock
--- stretching) and exposing transaction status on the module ports.
+-- I2C_RX serves). SCL is gated off at IDLE -- the bus is released high between
+-- transactions -- and the FSM is timed on the real bus edges, so a slave
+-- holding SCL low (clock stretching) simply delays every following edge.
+-- Still pending: exposing transaction status on the module ports.
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -44,9 +46,15 @@ architecture rtl of I2C_Master is
     -- SCL divider: system clock cycles per SCL period
     constant C_DIVIDER : natural := G_CLK_FREQ / G_I2C_FREQ;
 
-    -- clock_div control. Placeholder: SCL runs continuously until the FSM
-    -- gates it (state = IDLE -> bus stopped, clock stretching); the state
-    -- machine itself is complete.
+    -- START hold time, in clk cycles: after the SDA fall of the START
+    -- condition, SCL stays high for half an SCL period before the first SCL
+    -- fall. The free-running divider used to give the same hold.
+    constant C_START_HOLD : natural := C_DIVIDER / 2;
+
+    -- clock_div control, gated by scl_en_r: the divider runs only during a
+    -- transaction. clock_div parks its output low while disabled, so the
+    -- first enabled period starts with a full low phase and the bit cells
+    -- come out phase-aligned from there.
     signal enable : std_logic;
 
     -- Divider output. scl is an out port and cannot be read back, so the
@@ -54,6 +62,18 @@ architecture rtl of I2C_Master is
     -- what the edge detector looks at.
     signal scl_int   : std_logic;
     signal scl_level : std_logic;
+
+    -- SCL gate, registered. '1' during a transaction: it enables clock_div
+    -- AND lets the open-drain SCL driver pull the line low. '0' at IDLE:
+    -- divider parked, SCL only ever released, so the bus rests high between
+    -- transactions and a slave holding SCL low (clock stretching) is never
+    -- fought. Set at the end of the START hold (see START in the FSM),
+    -- cleared on IDLE.
+    signal scl_en_r : std_logic := '0';
+
+    -- START hold counter: counts clk cycles in START to time the release of
+    -- scl_en_r (START condition hold = half an SCL period).
+    signal start_cnt : natural range 0 to C_START_HOLD := 0;
 
     -- Transaction FSM (one data byte per transaction for now):
     --   IDLE     : bus free, waiting for a request (w = write, r = read)
@@ -129,7 +149,9 @@ begin
 
     data_to_read <= rx_data_reg;
 
-    enable <= '1';   -- placeholder: SCL always running (FSM control pending)
+    -- The divider runs only while scl_en_r is high: parked (output low) at
+    -- IDLE and during the START hold, phase-aligned restart on release.
+    enable <= scl_en_r;
 
     u_clk_div : entity work.clock_div
         generic map (
@@ -144,7 +166,11 @@ begin
 
     -- Open-drain SCL driver: low is actively driven, high is released to the
     -- external pull-up. The resolved bus level is used internally.
-    scl <= '0' when scl_int = '0' else 'Z';
+    -- scl_en_r gates the pull-down: at IDLE the line is only ever released,
+    -- so the bus rests high between transactions, and while a slave holds
+    -- SCL low (clock stretching) the master's "high" is just a release,
+    -- never a fight.
+    scl <= '0' when (scl_int = '0' and scl_en_r = '1') else 'Z';
     scl_level <= To_X01(scl);
 
     -- SDA reaches the pin through an open-drain driver: the master only pulls
@@ -227,9 +253,9 @@ begin
     end process;
 
     -- Transaction FSM: state and registered outputs update on the rising
-    -- clock edge. The case bodies are placeholders -- each state will
-    -- advance on the SCL edge pulses detected above and drive the
-    -- I2C_TX/I2C_RX handshake signals accordingly.
+    -- clock edge. Every state advances on the real bus edge pulses detected
+    -- above (never on the raw divider output), so a slave stretching SCL
+    -- simply delays the pulses and the FSM waits.
     process(clk)
     begin
         if rising_edge(clk) then
@@ -241,20 +267,42 @@ begin
                 rx_receive_reg <= '0';
                 rx_data_reg   <= (others => '0');
                 rx_done_reg   <= '0';
+                scl_en_r      <= '0';   -- SCL released while resetting
+                start_cnt     <= 0;
             else
                 tx_send_reg   <= '0';   -- one-clk pulse: set when a byte is handed over
                 rx_receive_reg <= '0';  -- one-clk pulse: set when RX is armed
 
+                -- SCL gate maintenance: off at IDLE (bus released, divider
+                -- parked), on in every active state. START is the exception
+                -- until its hold timer releases the gate: the decode only
+                -- holds the value there, so the timer's set (inside the case
+                -- below, which runs after this) wins.
+                if state = IDLE then
+                    scl_en_r <= '0';
+                elsif state = START then
+                    scl_en_r <= scl_en_r;   -- held; the START timer owns the set
+                else
+                    scl_en_r <= '1';
+                end if;
+
                 case state is
 
                     when IDLE =>
-                        -- Wait for a request, sampled on an SCL rising edge:
-                        -- this leaves roughly half an SCL period of high SCL
-                        -- after entry, so the SDA fall of the START condition
-                        -- (registered mux, one cycle later) happens while SCL
-                        -- is still high. The direction is latched here (if both
-                        -- w and r are high at the same time, read wins).
-                        if (w = '1' or r = '1') and scl_rise = '1' then
+                        -- SCL is gated off here (scl_en_r = '0': bus released
+                        -- high), so there are no SCL edges to wait for any
+                        -- more: the request is taken as soon as the bus is
+                        -- FREE, i.e. both lines released high. Waiting out
+                        -- the levels also covers a slave that is still
+                        -- stretching the previous transaction's last clock.
+                        -- The direction is latched here (if both w and r are
+                        -- high at the same time, read wins); the SDA fall of
+                        -- the START condition follows one clk later, while
+                        -- SCL is high. The hold counter is parked at zero so
+                        -- every START times the full hold.
+                        start_cnt <= 0;
+                        if (w = '1' or r = '1') and scl_level = '1'
+                           and sda_sync = '1' then
                             rw_reg <= r;
                             state  <= START;
                         end if;
@@ -262,12 +310,29 @@ begin
                     when START =>
                         -- sda_reg is driven low by the registered output mux
                         -- while SCL is still high: that IS the START
-                        -- condition. On the next SCL falling edge the address
-                        -- byte is handed to I2C_TX, which presents its first
-                        -- bit there (tx_send, below).
+                        -- condition. SCL is still gated off here, so the FSM
+                        -- first times out the START hold (half an SCL period,
+                        -- the hold the free-running divider used to give) and
+                        -- only then releases scl_en_r: the divider's
+                        -- parked-low output reaches the pin and SCL falls. On
+                        -- that real falling edge the address byte is handed
+                        -- to I2C_TX, which presents its first bit there
+                        -- (tx_send, below).
+                        if start_cnt = C_START_HOLD - 1 then
+                            scl_en_r  <= '1';   -- SCL pull-down from here on
+                            start_cnt <= 0;
+                        else
+                            start_cnt <= start_cnt + 1;
+                        end if;
                         if scl_fall = '1' then
                             state       <= ADDR_RW;
                             tx_send_reg <= '1';   -- hand over {addr, rw}
+                            -- Leave the counter at zero: it keeps counting
+                            -- during the 2 clk it takes the edge detector to
+                            -- report the fall, and a frozen residue would make
+                            -- the NEXT START hold shorter (or overflow the
+                            -- range for small dividers).
+                            start_cnt   <= 0;
                         end if;
 
                     when ADDR_RW =>
@@ -289,9 +354,12 @@ begin
                         -- throughout the high phase -- that way even a slow
                         -- slave is caught -- and the FSM moves on at the falling
                         -- edge that ends the cell: that is where a write (DATA_W)
-                        -- or a read (DATA_R) begins. (scl_int, not the scl port:
-                        -- an out port cannot be read.)
-                        if scl_int = '1' then
+                        -- or a read (DATA_R) begins. Sampled on the real bus
+                        -- level (scl_level, the resolved pin -- not scl_int):
+                        -- during a clock stretch scl_int can be high while the
+                        -- slave still holds SCL low, and the ACK must not be
+                        -- read before the slave actually released the line.
+                        if scl_level = '1' then
                             ack_reg <= sda_sync;
                         elsif scl_fall = '1' then
                             if rw_reg = '0' then
@@ -318,10 +386,12 @@ begin
                         -- SDA was released when the data byte completed (the
                         -- registered mux holds '1' here), so the slave owns the
                         -- line for this bit cell and pulls it low for ACK.
-                        -- Sampled throughout the SCL high phase so even a slow
-                        -- slave is caught; the FSM advances at the falling edge
-                        -- that ends the ACK bit cell.
-                        if scl_int = '1' then
+                        -- Sampled on the real bus level throughout the high
+                        -- phase (see ACK_ADDR -- this also rides out a clock
+                        -- stretch) so even a slow slave is caught; the FSM
+                        -- advances at the falling edge that ends the ACK bit
+                        -- cell.
+                        if scl_level = '1' then
                             ack_reg <= sda_sync;
                         elsif scl_fall = '1' then
                             state <= STOP;

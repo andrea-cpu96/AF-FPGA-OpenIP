@@ -1,5 +1,5 @@
-# ModelSim batch flow for I2C_Master write and public read-data tests
-# Run from inside sim_i2c_master/:  vsim -c -do sim_run.do
+# ModelSim batch flow for I2C_Master write, public read-data and
+# clock-stretching tests. Run from inside sim_i2c_master/: vsim -c -do sim_run.do
 transcript file sim_transcript.log
 onerror {quit -code 1 -f}
 onbreak {quit -code 1 -f}
@@ -15,6 +15,7 @@ vcom -quiet ../I2C_RX.vhd
 vcom -quiet ../I2C_Master.vhd
 vcom -quiet i2c_master_tb.vhd
 vcom -quiet i2c_master_read_tb.vhd
+vcom -quiet i2c_master_stretch_tb.vhd
 
 vsim -voptargs=+acc work.i2c_master_tb
 set BreakOnAssertion 2
@@ -26,6 +27,15 @@ set BreakOnAssertion 2
 run 1 ms
 if {![examine /i2c_master_read_tb/finished]} {
     echo "RESULT: FAIL -- read test did not finish"
+    quit -code 1 -f
+}
+quit -sim
+
+vsim -voptargs=+acc work.i2c_master_stretch_tb
+set BreakOnAssertion 2
+run 1 ms
+if {![examine /i2c_master_stretch_tb/finished]} {
+    echo "RESULT: FAIL -- stretch test did not finish"
     quit -code 1 -f
 }
 quit -code 0 -f

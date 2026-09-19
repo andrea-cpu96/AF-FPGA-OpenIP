@@ -1,0 +1,117 @@
+Reading pref.tcl
+
+# 2020.1
+
+# do sim_run.do
+# vsim -voptargs="+acc" work.i2c_master_tb 
+# Start time: 12:46:06 on Sep 19,2026
+# Loading std.standard
+# Loading std.textio(body)
+# Loading ieee.std_logic_1164(body)
+# Loading ieee.numeric_std(body)
+# Loading work.i2c_master_tb(sim)
+# Loading work.i2c_master(rtl)
+# Loading work.clock_div(rtl)
+# Loading work.i2c_tx(rtl)
+# Loading work.parallel_to_serial(rtl)
+# Loading work.i2c_rx(rtl)
+# Loading work.serial_to_parallel(rtl)
+# 2
+# ** Note: RESULT: PASS -- write transaction correct
+#    Time: 185791 ns  Iteration: 1  Instance: /i2c_master_tb
+# End time: 12:46:08 on Sep 19,2026, Elapsed time: 0:00:02
+# Errors: 0, Warnings: 0
+# vsim -voptargs="+acc" work.i2c_master_read_tb 
+# Start time: 12:46:08 on Sep 19,2026
+# Loading std.standard
+# Loading std.textio(body)
+# Loading ieee.std_logic_1164(body)
+# Loading ieee.numeric_std(body)
+# Loading work.i2c_master_read_tb(sim)
+# Loading work.i2c_master(rtl)
+# Loading work.clock_div(rtl)
+# Loading work.i2c_tx(rtl)
+# Loading work.parallel_to_serial(rtl)
+# Loading work.i2c_rx(rtl)
+# Loading work.serial_to_parallel(rtl)
+# 2
+# ** Note: RESULT: PASS -- public read output: 65, 96, hold and reset
+#    Time: 441591 ns  Iteration: 0  Instance: /i2c_master_read_tb
+# End time: 12:46:09 on Sep 19,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
+# vsim -voptargs="+acc" work.i2c_master_stretch_tb 
+# Start time: 12:46:09 on Sep 19,2026
+# Loading std.standard
+# Loading std.textio(body)
+# Loading ieee.std_logic_1164(body)
+# Loading ieee.numeric_std(body)
+# Loading work.i2c_master_stretch_tb(sim)
+# Loading work.i2c_master(rtl)
+# Loading work.clock_div(rtl)
+# Loading work.i2c_tx(rtl)
+# Loading work.parallel_to_serial(rtl)
+# Loading work.i2c_rx(rtl)
+# Loading work.serial_to_parallel(rtl)
+# 2
+# ** Note: RESULT: PASS -- clock stretching tolerated, byte 2D received
+#    Time: 210990 ns  Iteration: 0  Instance: /i2c_master_stretch_tb
+# End time: 12:46:10 on Sep 19,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
+# vsim -voptargs="+acc" work.i2c_master_multibyte_tb 
+# Start time: 12:46:10 on Sep 19,2026
+# Loading std.standard
+# Loading std.textio(body)
+# Loading ieee.std_logic_1164(body)
+# Loading ieee.numeric_std(body)
+# Loading work.i2c_master_multibyte_tb(sim)
+# Loading work.i2c_master(rtl)
+# Loading work.clock_div(rtl)
+# Loading work.i2c_tx(rtl)
+# Loading work.parallel_to_serial(rtl)
+# Loading work.i2c_rx(rtl)
+# Loading work.serial_to_parallel(rtl)
+# 2
+# ** Note: RESULT: PASS -- W3 write and W1-Sr-R2 repeated START
+#    Time: 1003810 ns  Iteration: 0  Instance: /i2c_master_multibyte_tb
+# End time: 12:46:10 on Sep 19,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# vsim -voptargs="+acc" work.i2c_master_stretch_multi_tb 
+# Start time: 12:46:11 on Sep 19,2026
+# Loading std.standard
+# Loading std.textio(body)
+# Loading ieee.std_logic_1164(body)
+# Loading ieee.numeric_std(body)
+# Loading work.i2c_master_stretch_multi_tb(sim)
+# Loading work.i2c_master(rtl)
+# Loading work.clock_div(rtl)
+# Loading work.i2c_tx(rtl)
+# Loading work.parallel_to_serial(rtl)
+# Loading work.i2c_rx(rtl)
+# Loading work.serial_to_parallel(rtl)
+# 2
+# ** Note: Stretch 0 requested, 300 clk held low
+#    Time: 40470 ns  Iteration: 0  Instance: /i2c_master_stretch_multi_tb
+# ** Note: Stretch 1 requested, 260 clk held low
+#    Time: 91710 ns  Iteration: 0  Instance: /i2c_master_stretch_multi_tb
+# ** Note: Stretch 2 requested, 420 clk held low
+#    Time: 182310 ns  Iteration: 0  Instance: /i2c_master_stretch_multi_tb
+# ** Note: Stretch 3 requested, 700 clk held low
+#    Time: 225910 ns  Iteration: 0  Instance: /i2c_master_stretch_multi_tb
+# ** Note: Stretch 4 requested, 1000 clk held low
+#    Time: 285150 ns  Iteration: 0  Instance: /i2c_master_stretch_multi_tb
+# ** Note: Stretch 5 requested, 340 clk held low
+#    Time: 359090 ns  Iteration: 0  Instance: /i2c_master_stretch_multi_tb
+# ** Note: Stretch 6 requested, 620 clk held low
+#    Time: 411130 ns  Iteration: 0  Instance: /i2c_master_stretch_multi_tb
+# ** Note: Stretch 7 requested, 460 clk held low
+#    Time: 508930 ns  Iteration: 0  Instance: /i2c_master_stretch_multi_tb
+# ** Note: Stretch 8 requested, 880 clk held low
+#    Time: 563370 ns  Iteration: 0  Instance: /i2c_master_stretch_multi_tb
+# ** Note: Stretch 9 requested, 1120 clk held low
+#    Time: 706530 ns  Iteration: 0  Instance: /i2c_master_stretch_multi_tb
+# ** Note: Stretch log: all 10 holds were honoured with the full duration
+#    Time: 734990 ns  Iteration: 0  Instance: /i2c_master_stretch_multi_tb
+# ** Note: RESULT: PASS -- W2-Sr-R3 with ten clock-stretch holds
+#    Time: 774990 ns  Iteration: 0  Instance: /i2c_master_stretch_multi_tb
+# End time: 12:46:11 on Sep 19,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0

@@ -58,6 +58,7 @@ begin
             clk     => clk,
             rst_n   => rst_n,
             enable  => enable,
+            hold_high => '0',
             clk_out => clk_out
         );
 

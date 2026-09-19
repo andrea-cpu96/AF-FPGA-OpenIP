@@ -31,8 +31,7 @@ architecture sim of i2c_rx_tb is
     -- Read-only watcher: counts byte_done pulses (never drives anything).
     signal byte_done_seen : natural := 0;
 
-    file results : text open write_mode is
-        "C:/Andrea/Eng/fpga_projects/AF-FPGA-OpenIP/I2C/sim_i2c_rx/results.txt";
+    file results : text open write_mode is "results.txt";
 
 begin
 

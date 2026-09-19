@@ -40,8 +40,7 @@ architecture rtl of I2C_TX is
     signal busy_reg      : std_logic := '0';
     signal byte_done_reg : std_logic := '0';
 
-    -- SCL falling edge detector. scl comes from clock_div, generated
-    -- registered inside this same clk domain, so no synchronizer is needed.
+    -- SCL is expected to be the synchronized bus level supplied by I2C_Master.
     signal scl_prev : std_logic := '1';
     signal scl_fall : std_logic;
 

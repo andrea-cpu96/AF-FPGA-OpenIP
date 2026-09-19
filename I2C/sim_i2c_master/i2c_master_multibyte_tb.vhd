@@ -3,7 +3,7 @@
 -- interface). Two scripted scenarios back to back, no reset in between:
 --   1. W3        : n_write=3, n_read=0  -- plain three-byte write (bytes
 --                  x"11", x"22", x"33" streamed onto data_to_transmit on
---                  the tx_done pulses)
+--                  the tx_data_done pulses)
 --   2. W1-Sr-R2  : n_write=1, n_read=2 -- write x"55", REPEATED START,
 --                  re-address with R/W=1, read x"C3" (master ACK) and x"7E"
 --                  (master NACK on the last byte)
@@ -45,6 +45,7 @@ architecture sim of i2c_master_multibyte_tb is
     signal data_to_transmit : std_logic_vector(7 downto 0) := (others => '0');
     signal data_to_read     : std_logic_vector(7 downto 0);
     signal tx_done          : std_logic;
+    signal tx_data_done     : std_logic;
     signal rx_valid         : std_logic;
     signal finished         : boolean := false;
 
@@ -74,9 +75,12 @@ architecture sim of i2c_master_multibyte_tb is
     signal sr_seen   : std_logic := '0';
     signal sr_gap_ok : boolean := true;
     signal last_wr_ack_t : time := 0 ns;
+    signal sr_start_t : time := 0 ns;
+    signal sr_hold_pending : boolean := false;
 
     -- Checker bookkeeping
-    signal tx_cnt  : natural range 0 to 63 := 0;
+    signal tx_cnt       : natural range 0 to 63 := 0;
+    signal tx_data_cnt  : natural range 0 to 63 := 0;
     signal rx_idx  : natural range 0 to 15 := 0;
     signal rx_hist : mem_a := (others => (others => '0'));
     signal rx_valid_d : std_logic := '0';
@@ -110,7 +114,7 @@ begin
             n_write => n_write, n_read => n_read,
             data_to_transmit => data_to_transmit,
             data_to_read => data_to_read,
-            tx_done => tx_done, rx_valid => rx_valid,
+            tx_done => tx_done, tx_data_done => tx_data_done, rx_valid => rx_valid,
             busy => open, ack => open,
             sda => sda_bus, scl => scl_bus
         );
@@ -124,6 +128,8 @@ begin
             if sr_start_ev = '1' then
                 if sl_st = S_WAIT_SR then
                     sr_seen   <= '1';
+                    sr_start_t <= now;
+                    sr_hold_pending <= true;
                     -- With protocol-compliant tSU;STA the repeated START
                     -- arrives about 9.7 us after the preceding ACK edge.
                     -- Keep enough margin for the synchronous implementation,
@@ -135,6 +141,12 @@ begin
                 rd_idx  <= 0;
                 sl_st   <= S_ADDR;
             else
+                if sr_hold_pending and scl_fall_p = '1' then
+                    assert now - sr_start_t >= 4 us
+                        report "Repeated START tHD;STA is shorter than 4 us"
+                        severity failure;
+                    sr_hold_pending <= false;
+                end if;
                 case sl_st is
 
                     when S_IDLE =>
@@ -247,6 +259,9 @@ begin
             if tx_done = '1' then
                 tx_cnt <= tx_cnt + 1;
             end if;
+            if tx_data_done = '1' then
+                tx_data_cnt <= tx_data_cnt + 1;
+            end if;
         end if;
     end process;
 
@@ -281,15 +296,17 @@ begin
         w <= '1';
         wait until falling_edge(sda_bus);   -- START
         w <= '0';
-        wait until rising_edge(tx_done);    -- address byte sent
-        wait until rising_edge(tx_done);    -- D1 sent
-        data_to_transmit <= x"22";          -- in time: D2 handover is 250 clk away
-        wait until rising_edge(tx_done);    -- D2 sent
+        wait until rising_edge(tx_done);       -- address byte sent (tx_done, not tx_data_done)
+        wait until rising_edge(tx_data_done);  -- D1 sent: stream on the data-only pulse
+        data_to_transmit <= x"22";             -- in time: D2 handover is 250 clk away
+        wait until rising_edge(tx_data_done);  -- D2 sent
         data_to_transmit <= x"33";
-        wait until rising_edge(tx_done);    -- D3 sent
+        wait until rising_edge(tx_data_done);  -- D3 sent
         wait for 2 us;                      -- let the pulse counter latch it
         assert tx_cnt = 4
             report "Unexpected tx_done pulse count in W3" severity failure;
+        assert tx_data_cnt = 3
+            report "tx_data_done included a non-data byte in W3" severity failure;
         wait for 40 us;                     -- STOP + idle margin
         assert scl_bus = 'H' and sda_bus = 'H'
             report "Bus not released after the W3 transaction" severity failure;
@@ -329,6 +346,8 @@ begin
             report "Master did not NACK the last read byte" severity failure;
         assert tx_cnt = 7
             report "Unexpected tx_done pulse count (4 + addr/W + W + addr/R)" severity failure;
+        assert tx_data_cnt = 4
+            report "Unexpected tx_data_done pulse count" severity failure;
         assert rx_idx = 2
             report "Unexpected rx_valid pulse count" severity failure;
         assert rx_hist(0) = x"C3"
@@ -350,27 +369,4 @@ begin
         wait;
     end process;
 
-    -- TEMP-DBG-BEGIN (remove)
-    dbg : process(clk)
-    begin
-        if rising_edge(clk) then
-            if sr_start_ev = '1' then
-                report "SR_EV sl_st=" & sl_t'image(sl_st) &
-                       " sr_seen=" & std_logic'image(sr_seen) &
-                       " nw=" & integer'image(to_integer(unsigned(n_write))) &
-                       " nr=" & integer'image(to_integer(unsigned(n_read))) &
-                       " wr_idx=" & integer'image(wr_idx) &
-                       " rd_idx=" & integer'image(rd_idx) severity note;
-            end if;
-            if sl_st = S_WACK and scl_fall_p = '1' then
-                report "WACK near end, nw=" & integer'image(to_integer(unsigned(n_write))) &
-                       " nr=" & integer'image(to_integer(unsigned(n_read))) &
-                       " wr_idx=" & integer'image(wr_idx) severity note;
-            end if;
-            if sl_st = S_WAIT_SR and sda_bus'event then
-                report "WAIT_SR sees SDA change" severity note;
-            end if;
-        end if;
-    end process;
-    -- TEMP-DBG-END
 end architecture sim;

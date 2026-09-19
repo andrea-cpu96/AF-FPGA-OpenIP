@@ -43,9 +43,8 @@ architecture sim of i2c_master_tb is
     signal frame_sda : frame_a := (others => '1');
     signal fi : natural range 0 to 18 := 0;
 
-    -- Result file
-    file results : text open write_mode is
-        "C:/Andrea/Eng/fpga_projects/AF-FPGA-OpenIP/I2C/sim_i2c_master/results.txt";
+    -- Result file (relative to sim_i2c_master/, where sim_run.do runs)
+    file results : text open write_mode is "results.txt";
 
 begin
 
@@ -68,6 +67,7 @@ begin
             data_to_transmit => data_to_transmit,
             data_to_read     => open,
             tx_done          => open,
+            tx_data_done     => open,
             rx_valid         => open,
             busy             => open,
             ack              => open,

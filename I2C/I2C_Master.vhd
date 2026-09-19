@@ -17,7 +17,7 @@
 -- REPEATED START (RSTART re-enters START mid-transaction), n_read data bytes
 -- after re-addressing the slave with R/W = 1 -- the classic "write a register
 -- pointer, then read it back" idiom. data_to_transmit is streamed: update it
--- on each tx_done pulse; data_to_read is drained one byte per rx_valid pulse.
+-- on each tx_data_done pulse; data_to_read is drained one byte per rx_valid pulse.
 -- SCL is gated off at IDLE -- the bus is released high between transactions --
 -- and the FSM is timed on the real bus edges, so a slave holding SCL low
 -- (clock stretching) simply delays every following edge.
@@ -38,11 +38,12 @@ entity I2C_Master is
         w     : in  std_logic;                     -- write request (hold until busy = '1')
         r     : in  std_logic;                     -- read request  (hold until busy = '1')
         addr  : in  std_logic_vector(6 downto 0);  -- 7-bit slave address
-        data_to_transmit : in std_logic_vector(7 downto 0);  -- byte to write (next byte while tx_done pulses)
+        data_to_transmit : in std_logic_vector(7 downto 0);  -- next byte while tx_data_done pulses
         n_write : in std_logic_vector(3 downto 0) := "0001"; -- data bytes in the write phase (0 = none)
         n_read  : in std_logic_vector(3 downto 0) := "0000"; -- data bytes to read after the repeated START (0 = none)
         data_to_read : out std_logic_vector(7 downto 0);    -- last complete byte read; zero on reset
-        tx_done  : out std_logic;                  -- pulse: byte fully serialized -> update data_to_transmit
+        tx_done  : out std_logic;                  -- pulse: address or data byte fully serialized
+        tx_data_done : out std_logic;              -- pulse: write-data byte fully serialized
         rx_valid : out std_logic;                  -- pulse: a complete read byte landed in data_to_read
         busy     : out std_logic;                  -- '1' while a transaction is in progress
         ack      : out std_logic;                  -- last sampled slave ACK: '0' ACK, '1' NACK
@@ -54,6 +55,37 @@ end entity I2C_Master;
 
 architecture rtl of I2C_Master is
 
+    -- Larger of two naturals; used to size the interval counters below.
+    function max_natural(a : natural; b : natural) return natural is
+    begin
+        if a > b then
+            return a;
+        end if;
+        return b;
+    end function;
+
+    -- Convert an absolute timing requirement to clock cycles, rounding up so
+    -- the generated interval never falls below the requested time.
+    function cycles_for_ns(clk_freq : natural; duration_ns : natural) return positive is
+        variable cycles     : natural := 0;
+        variable accumulator : natural := 0;
+    begin
+        for i in 1 to duration_ns loop
+            accumulator := accumulator + clk_freq;
+            while accumulator >= 1_000_000_000 loop
+                accumulator := accumulator - 1_000_000_000;
+                cycles := cycles + 1;
+            end loop;
+        end loop;
+        if accumulator > 0 then
+            cycles := cycles + 1;
+        end if;
+        if cycles = 0 then
+            return 1;
+        end if;
+        return cycles;
+    end function;
+
     -- Keep elaboration safe long enough for the parameter assertions below to
     -- report a useful error instead of failing in a divide-by-zero or invalid
     -- clock_div generic map.
@@ -64,31 +96,52 @@ architecture rtl of I2C_Master is
             return 2;
         end if;
         d := clk_freq / i2c_freq;
+        if (clk_freq mod i2c_freq) /= 0 then
+            d := d + 1;
+        end if;
         if d < 2 then
             return 2;
         end if;
         return d;
     end function;
 
-    -- SCL divider: system clock cycles per SCL period
+    -- SCL divider: system clock cycles per SCL period. safe_divider rounds
+    -- UP, so the generated SCL frequency never exceeds G_I2C_FREQ: the
+    -- generic acts as a maximum, not an exact setting.
     constant C_DIVIDER : natural := safe_divider(G_CLK_FREQ, G_I2C_FREQ);
 
-    -- Half-period in clk cycles.  It is used for START setup, repeated-START
-    -- setup, STOP setup and the post-STOP bus-free interval.  With the default
-    -- 100 kHz bus this is 250 clk cycles = 5 us.
+    -- Half-period in clk cycles. Standard-mode is limited to 100 kHz below,
+    -- so this is at least 5 us.
     constant C_HALF_PERIOD : natural := (C_DIVIDER + 1) / 2;
 
-    -- Standard-mode minimum setup is 4.7 us for repeated START and STOP.
-    -- The divider's high phase is 5 us at 100 kHz, so use 94% of that phase
-    -- to leave room for the synchronous edge-detection/output latency while
-    -- still meeting the timing requirement.
-    constant C_SETUP_HOLD : natural := (C_HALF_PERIOD * 15 + 15) / 16;
+    -- Standard-mode minimum bus timings, converted to clock cycles with a
+    -- ceiling so no generated interval is shorter than the specification.
+    constant C_TLOW       : natural := cycles_for_ns(G_CLK_FREQ, 4700);
+    constant C_THIGH      : natural := cycles_for_ns(G_CLK_FREQ, 4000);
+    constant C_THD_STA    : natural := cycles_for_ns(G_CLK_FREQ, 4000);
+    constant C_TSU_STA    : natural := cycles_for_ns(G_CLK_FREQ, 4700);
+    constant C_TSU_STO    : natural := cycles_for_ns(G_CLK_FREQ, 4000);
+    constant C_TBUF       : natural := cycles_for_ns(G_CLK_FREQ, 4700);
+
+    -- Largest interval any dedicated timer counts up to: the START hold
+    -- (half an SCL period) and the four handshake timings above. The
+    -- interval counters (start_cnt, bus_free_cnt) are sized against THIS
+    -- constant, not against the SCL half period, so they can never overflow:
+    -- at higher I2C frequencies tBUF / tSU;STA / tHD;STA / tSU;STO are wider
+    -- than half an SCL period and would break a C_HALF_PERIOD-limited
+    -- counter. The bus-timing assert below still decides whether a
+    -- configuration is legal at all.
+    constant C_TIMER_MAX : natural := max_natural(C_HALF_PERIOD,
+                                        max_natural(C_TSU_STA,
+                                        max_natural(C_THD_STA,
+                                        max_natural(C_TSU_STO, C_TBUF))));
 
     -- clock_div control, gated by scl_en_r: the divider runs only during a
     -- transaction. clock_div parks its output low while disabled, so the
     -- first enabled period starts with a full low phase and the bit cells
     -- come out phase-aligned from there.
     signal enable : std_logic;
+    signal hold_high : std_logic;
 
     -- Divider output. scl is an out port and cannot be read back, so the
     -- bus clock is kept in this internal signal: it drives the pin and is
@@ -104,10 +157,17 @@ architecture rtl of I2C_Master is
     -- cleared on IDLE.
     signal scl_en_r : std_logic := '0';
 
-    -- START hold counter: counts clk cycles in START to time the release of
-    -- scl_en_r (START condition hold = half an SCL period).
-    signal start_cnt : natural range 0 to C_HALF_PERIOD := 0;
-    signal bus_free_cnt : natural range 0 to C_HALF_PERIOD := C_HALF_PERIOD;
+    -- Interval counter for the START hold (half an SCL period) and the
+    -- dedicated repeated-START / STOP timings (tSU;STA, tHD;STA, tSU;STO).
+    -- Its range is C_TIMER_MAX -- the largest of those constants -- so the
+    -- count can never overflow, whatever G_I2C_FREQ is.
+    signal start_cnt : natural range 0 to C_TIMER_MAX := 0;
+
+    -- Bus-free timer: counts CONTINUOUS bus-free time. It is reset to zero
+    -- whenever SDA or SCL is not released high, and a request is only
+    -- accepted once it has reached C_TBUF (tBUF), so a new START can never
+    -- preempt the required bus-free interval.
+    signal bus_free_cnt : natural range 0 to C_TIMER_MAX := C_TBUF;
 
     -- Transaction FSM (multi-byte, two phases per request: n_write bytes are
     -- written first, then -- through a repeated START -- n_read bytes read):
@@ -122,7 +182,8 @@ architecture rtl of I2C_Master is
     --   RSTART   : repeated START -- like START, but SCL is already running
     --   STOP     : STOP condition -- SDA rises while SCL is high
     type state_t is (IDLE, START, ADDR_RW, ACK_ADDR, DATA_W, ACK_DATA,
-                     DATA_R, ACK_RX, RSTART, RSTART_HOLD, STOP, STOP_HOLD,
+                     DATA_R, ACK_RX, RSTART, RSTART_HOLD, RSTART_SDA_HOLD,
+                     STOP, STOP_HOLD,
                      STOP_RELEASE);
     signal state : state_t := IDLE;
 
@@ -161,12 +222,13 @@ architecture rtl of I2C_Master is
     signal sda_meta : std_logic := '1';
     signal sda_sync : std_logic := '1';
 
-    -- SCL edge detector. scl_int comes from clock_div, which generates it
-    -- registered inside this same clk domain, so no extra synchronizer stage
-    -- is needed. scl_rise/scl_fall are one-clk-wide pulses: the FSM is timed
-    -- on these, never by clocking logic with SCL itself, so the design stays
-    -- single clock.
-    signal scl_prev : std_logic := '1';
+    -- Physical SCL is asynchronous when a slave releases a stretched clock.
+    signal scl_meta   : std_logic := '1';
+    signal scl_sync   : std_logic := '1';
+    signal scl_sync_d : std_logic := '1';
+
+    -- SCL edge detector. scl_rise/scl_fall are one-clk-wide pulses used by
+    -- the FSM, TX, and RX; they are derived only from synchronized SCL.
     signal scl_rise : std_logic;
     signal scl_fall : std_logic;
 
@@ -189,6 +251,7 @@ architecture rtl of I2C_Master is
     -- Last complete byte read off the bus, exposed through data_to_read.
     -- Holds its value during subsequent transfers; synchronous reset clears it.
     signal rx_data_reg : std_logic_vector(7 downto 0) := (others => '0');
+    signal rx_valid_reg : std_logic := '0';
 
     -- '1' once I2C_RX reports the whole byte during DATA_R. SDA may not be
     -- touched at that moment -- the slave still drives the last data bit until
@@ -206,22 +269,40 @@ begin
         report "G_I2C_FREQ must be greater than zero" severity failure;
     assert G_CLK_FREQ >= 2 * G_I2C_FREQ
         report "G_CLK_FREQ must be at least twice G_I2C_FREQ" severity failure;
+    assert G_I2C_FREQ <= 100_000
+        report "G_I2C_FREQ must be at most 100 kHz (Standard-mode)" severity failure;
+    -- The generated SCL low/high phases themselves must meet the
+    -- Standard-mode minimum times. The handshake intervals (tHD;STA,
+    -- tSU;STA, tSU;STO, tBUF) are timed by their own counters, so they need
+    -- the C_TIMER_MAX range above -- not the SCL half period.
+    assert C_HALF_PERIOD >= C_TLOW and C_HALF_PERIOD >= C_THIGH
+        report "G_I2C_FREQ and G_CLK_FREQ cannot meet Standard-mode SCL timing" severity failure;
 
     data_to_read <= rx_data_reg;
     busy         <= busy_reg;
     ack          <= ack_reg;
 
-    -- Streaming handshakes: tx_done pulses when a byte (the address or a
-    -- data byte) has been fully serialized -- update data_to_transmit for
-    -- the next write byte when it fires; the FSM captures it at the next
-    -- DATA_W handover, a full bit cell later. rx_valid pulses when a
-    -- complete read byte has landed in data_to_read -- consume it then.
+    -- Streaming handshakes: tx_done pulses when an address or data byte has
+    -- been fully serialized. tx_data_done is the data-only variant for
+    -- consumers that stream write bytes. rx_valid is registered here
+    -- alongside data_to_read, so the public pulse always selects that byte.
     tx_done  <= tx_byte_done;
-    rx_valid <= rx_byte_done;
+    tx_data_done <= tx_byte_done when state = DATA_W else '0';
+    rx_valid <= rx_valid_reg;
 
     -- The divider runs only while scl_en_r is high: parked (output low) at
     -- IDLE and during the START hold, phase-aligned restart on release.
     enable <= scl_en_r;
+
+    -- Freeze an already-high SCL phase while the FSM times a setup/hold
+    -- interval off the bus: the repeated-START setup (tSU;STA) and hold
+    -- (tHD;STA), and the STOP setup (tSU;STO). The divider cannot be
+    -- disabled here because its disabled output is low; hold_high parks the
+    -- counter instead, so SCL cannot fall inside the interval even when the
+    -- divider's own high phase would end earlier. If a slave stretches SCL
+    -- anyway (level low), the FSM restarts the interval on the real rise.
+    hold_high <= '1' when state = RSTART_HOLD or state = RSTART_SDA_HOLD
+                      or state = STOP_HOLD else '0';
 
     u_clk_div : entity work.clock_div
         generic map (
@@ -231,6 +312,8 @@ begin
             clk     => clk,
             rst_n   => rst_n,
             enable  => enable,
+            hold_high => hold_high,
+            scl_in  => scl_level,
             clk_out => scl_int
         );
 
@@ -241,7 +324,7 @@ begin
     -- SCL low (clock stretching) the master's "high" is just a release,
     -- never a fight.
     scl <= '0' when (scl_int = '0' and scl_en_r = '1') else 'Z';
-    scl_level <= To_X01(scl);
+    scl_level <= scl_sync;
 
     -- SDA reaches the pin through an open-drain driver: the master only pulls
     -- the line low and releases it otherwise, so it can never fight the slave.
@@ -266,6 +349,23 @@ begin
             else
                 sda_meta <= sda;
                 sda_sync <= To_X01(sda_meta);
+            end if;
+        end if;
+    end process;
+
+    -- Synchronize the physical open-drain SCL input before using it as bus
+    -- feedback or as a timing signal.
+    process(clk)
+    begin
+        if rising_edge(clk) then
+            if rst_n = '0' then
+                scl_meta   <= '1';
+                scl_sync   <= '1';
+                scl_sync_d <= '1';
+            else
+                scl_meta   <= To_X01(scl);
+                scl_sync   <= scl_meta;
+                scl_sync_d <= scl_sync;
             end if;
         end if;
     end process;
@@ -306,22 +406,9 @@ begin
             busy          => rx_busy
         );
 
-    -- SCL edge detector: combinational pulses from the registered SCL history.
-    -- This avoids an unnecessary extra clk of latency between a bus edge and
-    -- the FSM response, especially at the ACK-to-data handoff.
-    process(clk)
-    begin
-        if rising_edge(clk) then
-            if rst_n = '0' then
-                scl_prev <= '1';
-            else
-                scl_prev <= scl_level;
-            end if;
-        end if;
-    end process;
-
-    scl_rise <= (scl_level and not scl_prev) when rst_n = '1' else '0';
-    scl_fall <= ((not scl_level) and scl_prev) when rst_n = '1' else '0';
+    -- Edge pulses come from the synchronized SCL level and its delayed copy.
+    scl_rise <= (scl_sync and not scl_sync_d) when rst_n = '1' else '0';
+    scl_fall <= ((not scl_sync) and scl_sync_d) when rst_n = '1' else '0';
 
     -- Transaction FSM: state and registered outputs update on the rising
     -- clock edge. Every state advances on the real bus edge pulses detected
@@ -337,10 +424,11 @@ begin
                 tx_send_reg   <= '0';
                 rx_receive_reg <= '0';
                 rx_data_reg   <= (others => '0');
+                rx_valid_reg  <= '0';
                 rx_done_reg   <= '0';
                 scl_en_r      <= '0';   -- SCL released while resetting
                 start_cnt     <= 0;
-                bus_free_cnt  <= C_HALF_PERIOD;
+                bus_free_cnt  <= C_TBUF;
                 wr_left       <= 0;
                 rd_left       <= 0;
                 addr_reg      <= (others => '0');
@@ -349,6 +437,7 @@ begin
             else
                 tx_send_reg   <= '0';   -- one-clk pulse: set when a byte is handed over
                 rx_receive_reg <= '0';  -- one-clk pulse: set when RX is armed
+                rx_valid_reg  <= '0';   -- one-clk public pulse
 
                 -- SCL gate maintenance: off at IDLE (bus released, divider
                 -- parked), on in every active state. START is the exception
@@ -378,17 +467,25 @@ begin
                         -- SCL is high. The hold counter is parked at zero so
                         -- every START times the full hold.
                         start_cnt <= 0;
-                        if bus_free_cnt < C_HALF_PERIOD then
-                            bus_free_cnt <= bus_free_cnt + 1;
+                        if scl_level = '1' and sda_sync = '1' then
+                            if bus_free_cnt < C_TBUF then
+                                bus_free_cnt <= bus_free_cnt + 1;
+                            end if;
+                        else
+                            bus_free_cnt <= 0;
                         end if;
                         if w = '0' and r = '0' then
                             request_armed <= '1';
                         end if;
-                        if request_armed = '1' and bus_free_cnt = C_HALF_PERIOD
+                        if request_armed = '1' and bus_free_cnt = C_TBUF
                            and (w = '1' or r = '1') and scl_level = '1'
                            and sda_sync = '1' then
-                             rw_reg  <= r;
-                             wr_left <= to_integer(unsigned(n_write));
+                             rw_reg <= r;
+                             if r = '1' then
+                                 wr_left <= 0;
+                             else
+                                 wr_left <= to_integer(unsigned(n_write));
+                             end if;
                              rd_left <= to_integer(unsigned(n_read));
                              addr_reg <= addr;
                              request_armed <= '0';
@@ -543,6 +640,7 @@ begin
                         -- rx_done_reg, i.e. for the whole byte.
                         if rx_byte_done = '1' then
                             rx_data_reg <= rx_data;
+                            rx_valid_reg <= '1';
                             rx_done_reg <= '1';
                         end if;
 
@@ -555,20 +653,16 @@ begin
                         -- cell while more read bytes follow (ACK), or released
                         -- on the last one (NACK -- the slave must see it to
                         -- stop driving the line). On the cell's closing edge:
-                        -- more read bytes re-arm I2C_RX for the next one, a
-                        -- write phase still pending goes through a repeated
-                        -- START, otherwise the STOP condition begins.
+                        -- more read bytes re-arm I2C_RX for the next one;
+                        -- the final read byte ends the transaction.
                         if scl_fall = '1' then
                             if rd_left > 1 then
                                 rd_left        <= rd_left - 1;
                                 state          <= DATA_R;
                                 rx_receive_reg <= '1';  -- arm I2C_RX for the next byte
                                 rx_done_reg    <= '0';
-                            elsif wr_left > 0 then
-                                state     <= RSTART;   -- repeated START (e.g. R then W phase)
-                                rw_reg    <= '0';      -- the address byte is re-sent with R/W = 0
-                                start_cnt <= 0;
                             else
+                                rd_left <= 0;
                                 state <= STOP;
                             end if;
                         end if;
@@ -583,13 +677,27 @@ begin
                         end if;
 
                     when RSTART_HOLD =>
-                        -- Hold SCL high and SDA released for at least one
-                        -- half-period (5 us at 100 kHz) before pulling SDA
-                        -- low. This satisfies tSU;STA for a repeated START.
+                        -- Hold SCL high and SDA released for the repeated
+                        -- START setup interval. The divider is frozen by
+                        -- hold_high, so SCL cannot fall during this wait.
                         if scl_level = '0' then
                             start_cnt <= 0;
                             state     <= RSTART;
-                        elsif start_cnt = C_SETUP_HOLD - 1 then
+                        elsif start_cnt = C_TSU_STA - 1 then
+                            start_cnt <= 0;
+                            state     <= RSTART_SDA_HOLD;
+                        else
+                            start_cnt <= start_cnt + 1;
+                        end if;
+
+                    when RSTART_SDA_HOLD =>
+                        -- SDA is now low, forming Sr. Keep SCL high for a
+                        -- complete half-period so tHD;STA is met before the
+                        -- divider is allowed to resume.
+                        if scl_level = '0' then
+                            start_cnt <= 0;
+                            state     <= RSTART;
+                        elsif start_cnt = C_THD_STA - 1 then
                             start_cnt <= 0;
                             state     <= START;
                         else
@@ -607,11 +715,14 @@ begin
                     when STOP_HOLD =>
                         -- Keep SDA low while SCL is high for the STOP setup
                         -- interval (tSU;STO), then release it to create the
-                        -- actual SDA rising edge of STOP.
+                        -- actual SDA rising edge of STOP. The divider is
+                        -- frozen by hold_high, so SCL cannot fall inside the
+                        -- interval; a slave that still stretches (level low)
+                        -- is handled by restarting the interval.
                         if scl_level = '0' then
                             start_cnt <= 0;
                             state     <= STOP;
-                        elsif start_cnt = C_SETUP_HOLD - 1 then
+                        elsif start_cnt = C_TSU_STO - 1 then
                             start_cnt <= 0;
                             state     <= STOP_RELEASE;
                         else
@@ -668,7 +779,7 @@ begin
                     when ACK_DATA =>
                         -- Same handoff for consecutive write bytes.  The next
                         -- byte is already available on data_to_transmit when
-                        -- tx_done is used as the streaming handover.
+                        -- tx_data_done is used as the streaming handover.
                         if scl_fall = '1' and wr_left > 0 then
                             sda_reg <= data_to_transmit(7);
                         else
@@ -698,6 +809,7 @@ begin
                         end if;
                     when RSTART           => sda_reg <= '1';  -- released while waiting for SCL high
                     when RSTART_HOLD     => sda_reg <= '1';  -- released during tSU;STA
+                    when RSTART_SDA_HOLD => sda_reg <= '0';  -- hold Sr SDA low
                     when STOP            => sda_reg <= '0';  -- hold low until SCL rises
                     when STOP_HOLD       => sda_reg <= '0';  -- hold low for tSU;STO
                     when STOP_RELEASE    => sda_reg <= '1';  -- release: the actual STOP edge

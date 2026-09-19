@@ -67,6 +67,7 @@ architecture sim of i2c_master_stretch_multi_tb is
     signal data_to_transmit : std_logic_vector(7 downto 0) := (others => '0');
     signal data_to_read     : std_logic_vector(7 downto 0);
     signal tx_done          : std_logic;
+    signal tx_data_done     : std_logic;
     -- TB-domain bus observation: edge pulses and the two framing conditions
     signal scl_obs      : std_logic;
     signal scl_prev_tb  : std_logic := '1';
@@ -161,7 +162,7 @@ begin
             n_write => n_write, n_read => n_read,
             data_to_transmit => data_to_transmit,
             data_to_read => data_to_read,
-            tx_done => tx_done, rx_valid => rx_valid,
+            tx_done => tx_done, tx_data_done => tx_data_done, rx_valid => rx_valid,
             busy => open, ack => open,
             sda => sda_bus, scl => scl_bus
         );
@@ -594,10 +595,10 @@ begin
         wait until falling_edge(sda_bus);  -- START condition
         w <= '0';
 
-        wait until rising_edge(tx_done);   -- 1: address byte (W) sent
-        wait until rising_edge(tx_done);   -- 2: WR_BYTES(0) sent
-        data_to_transmit <= WR_BYTES(1);   -- in time: handover is a cell away
-        wait until rising_edge(tx_done);   -- 3: write phase done
+        wait until rising_edge(tx_done);        -- 1: address byte (W) sent
+        wait until rising_edge(tx_data_done);   -- 2: WR_BYTES(0) sent (stream on the data-only pulse)
+        data_to_transmit <= WR_BYTES(1);        -- in time: handover is a cell away
+        wait until rising_edge(tx_done);        -- 3: write phase done
 
         wait until rising_edge(tx_done);   -- 4: address byte (R) re-sent after Sr
         wait until sl_st = S_DONE;         -- NACK cell of the last read byte

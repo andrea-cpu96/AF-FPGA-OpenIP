@@ -9,7 +9,7 @@
 -- Checks:
 --   * the START condition appears (SDA falls while SCL is high)
 --   * the 10 bit cells of the aborted frame, sampled on the SCL rising
---     edges: address byte 11010000, NACK slot '1', STOP-framing cell '0'
+--     edges: address byte 01111000, NACK slot '1', STOP-framing cell '0'
 --   * the STOP condition (SDA rises while SCL is high)
 --   * tBUF: the wrapper re-issues a transaction immediately, so the next
 --     START must respect the bus-free time (4.7 us) after the STOP
@@ -103,9 +103,9 @@ begin
         end loop;
         report "Captured frame: " & got_str severity note;
 
-        -- address 0x68 with W = 0
-        if frame(1 to 8) /= "11010000" then
-            report "FAIL: address byte wrong (expected 11010000)" severity error;
+        -- address 0x3C with W = 0
+        if frame(1 to 8) /= "01111000" then
+            report "FAIL: address byte wrong (expected 01111000)" severity error;
             ok := false;
         end if;
         -- no slave on the bus: the address slot must read NACK ...

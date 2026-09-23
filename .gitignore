@@ -6,6 +6,7 @@
 work/
 transcript*
 sim_transcript.log
+run_stdout.log
 modelsim.ini
 *.wlf
 wlf*

@@ -4,7 +4,7 @@ Reading pref.tcl
 
 # do sim_run.do
 # vsim -voptargs="+acc" work.i2c_master_tb 
-# Start time: 12:46:06 on Sep 19,2026
+# Start time: 11:51:46 on Sep 23,2026
 # Loading std.standard
 # Loading std.textio(body)
 # Loading ieee.std_logic_1164(body)
@@ -19,10 +19,10 @@ Reading pref.tcl
 # 2
 # ** Note: RESULT: PASS -- write transaction correct
 #    Time: 185791 ns  Iteration: 1  Instance: /i2c_master_tb
-# End time: 12:46:08 on Sep 19,2026, Elapsed time: 0:00:02
+# End time: 11:51:46 on Sep 23,2026, Elapsed time: 0:00:00
 # Errors: 0, Warnings: 0
 # vsim -voptargs="+acc" work.i2c_master_read_tb 
-# Start time: 12:46:08 on Sep 19,2026
+# Start time: 11:51:46 on Sep 23,2026
 # Loading std.standard
 # Loading std.textio(body)
 # Loading ieee.std_logic_1164(body)
@@ -37,10 +37,10 @@ Reading pref.tcl
 # 2
 # ** Note: RESULT: PASS -- public read output: 65, 96, hold and reset
 #    Time: 441591 ns  Iteration: 0  Instance: /i2c_master_read_tb
-# End time: 12:46:09 on Sep 19,2026, Elapsed time: 0:00:01
+# End time: 11:51:46 on Sep 23,2026, Elapsed time: 0:00:00
 # Errors: 0, Warnings: 0
 # vsim -voptargs="+acc" work.i2c_master_stretch_tb 
-# Start time: 12:46:09 on Sep 19,2026
+# Start time: 11:51:46 on Sep 23,2026
 # Loading std.standard
 # Loading std.textio(body)
 # Loading ieee.std_logic_1164(body)
@@ -55,10 +55,10 @@ Reading pref.tcl
 # 2
 # ** Note: RESULT: PASS -- clock stretching tolerated, byte 2D received
 #    Time: 210990 ns  Iteration: 0  Instance: /i2c_master_stretch_tb
-# End time: 12:46:10 on Sep 19,2026, Elapsed time: 0:00:01
+# End time: 11:51:47 on Sep 23,2026, Elapsed time: 0:00:01
 # Errors: 0, Warnings: 0
 # vsim -voptargs="+acc" work.i2c_master_multibyte_tb 
-# Start time: 12:46:10 on Sep 19,2026
+# Start time: 11:51:47 on Sep 23,2026
 # Loading std.standard
 # Loading std.textio(body)
 # Loading ieee.std_logic_1164(body)
@@ -73,10 +73,10 @@ Reading pref.tcl
 # 2
 # ** Note: RESULT: PASS -- W3 write and W1-Sr-R2 repeated START
 #    Time: 1003810 ns  Iteration: 0  Instance: /i2c_master_multibyte_tb
-# End time: 12:46:10 on Sep 19,2026, Elapsed time: 0:00:00
+# End time: 11:51:47 on Sep 23,2026, Elapsed time: 0:00:00
 # Errors: 0, Warnings: 0
 # vsim -voptargs="+acc" work.i2c_master_stretch_multi_tb 
-# Start time: 12:46:11 on Sep 19,2026
+# Start time: 11:51:47 on Sep 23,2026
 # Loading std.standard
 # Loading std.textio(body)
 # Loading ieee.std_logic_1164(body)
@@ -113,5 +113,6 @@ Reading pref.tcl
 #    Time: 734990 ns  Iteration: 0  Instance: /i2c_master_stretch_multi_tb
 # ** Note: RESULT: PASS -- W2-Sr-R3 with ten clock-stretch holds
 #    Time: 774990 ns  Iteration: 0  Instance: /i2c_master_stretch_multi_tb
-# End time: 12:46:11 on Sep 19,2026, Elapsed time: 0:00:00
+# End time: 11:51:48 on Sep 23,2026, Elapsed time: 0:00:01
 # Errors: 0, Warnings: 0
+EXIT_CODE: 0 

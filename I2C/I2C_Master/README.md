@@ -43,7 +43,7 @@ I2C_Master (top level: transaction FSM + bus framing + timings)
 
 ### 1.2 Top-level RTL view
 
-*Not captured yet — pending (roadmap §9). The `I2C_DUT` sub-project (`I2C_DUT/`) is elaborated as a separate Quartus project for board-level verification.*
+*Not captured yet — pending (roadmap §9). The `../I2C_DUT/` sub-project (`../I2C_DUT/`) is elaborated as a separate Quartus project for board-level verification.*
 
 ## 2. Module Map
 
@@ -55,7 +55,7 @@ I2C_Master (top level: transaction FSM + bus framing + timings)
 | `parallel_to_serial` (P2S) | `I2C_TX` | N-bit load/shift register, `G_MSB_FIRST = true` | ✅ |
 | `I2C_RX` | `I2C_Master` | Byte de-serialiser, MSB first, paced on SCL rising edges | ✅ |
 | `serial_to_parallel` (S2P) | `I2C_RX` | N-bit shift register, `G_MSB_FIRST = true` | ✅ |
-| `I2C_DUT` | — (separate project `I2C_DUT/`) | Board wrapper: 4-pin interface + stimulus FSM for oscilloscope/logic-analyzer probes | ✅ |
+| `I2C_DUT` | — (separate project `../I2C_DUT/`) | Board wrapper: 4-pin interface + stimulus FSM for oscilloscope/logic-analyzer probes | ✅ |
 
 > Reuse note: `parallel_to_serial` / `serial_to_parallel` are the same converter modules used by the UART project, extended with a **`G_MSB_FIRST` generic** (default `false` = UART LSB-first, behaviour unchanged; `true` = I2C MSB-first). The `I2C/` folder keeps its own copies of the sources.
 
@@ -76,7 +76,7 @@ Other files (not in the QSF):
 
 | File | Content |
 |---|---|
-| `I2C_DUT/I2C_DUT.vhd` | board DUT wrapper — own Quartus project (`I2C_DUT/I2C_DUT.qsf`, same device) |
+| `../I2C_DUT/I2C_DUT.vhd` | board DUT wrapper — own Quartus project (`../I2C_DUT/I2C_DUT.qsf`, same device) |
 | `tmpack_tb.vhd` | throwaway ACK-handover check on a simulated bus (VHDL-2008 external-name probe of `ack_reg`/`sda_reg`); kept for reference |
 | `I2C_Master.vhd.before_*.bak` | historical backups (pre protocol-fix / pre repeated-START) |
 
@@ -84,8 +84,8 @@ Other files (not in the QSF):
 
 | Folder | Testbench | Scope |
 |---|---|---|
-| `sim_i2c_tx/` | `i2c_tx_tb.vhd` | byte serialisation: bit order, busy/`byte_done` alignment, stretched cell, back-to-back |
-| `sim_i2c_rx/` | `i2c_rx_tb.vhd` | byte capture: MSB-first rebuild, ACK-cell immunity, re-arm |
+| `../sim_i2c_tx/` | `i2c_tx_tb.vhd` | byte serialisation: bit order, busy/`byte_done` alignment, stretched cell, back-to-back |
+| `../sim_i2c_rx/` | `i2c_rx_tb.vhd` | byte capture: MSB-first rebuild, ACK-cell immunity, re-arm |
 | `sim_i2c_master/` | 5 TBs (see §8) | transaction level: write / read / stretch / multibyte / Sr + multi-stretch |
 | `sim_i2c_freq/` | `i2c_master_freq_tb.vhd` | SCL frequency: ceiling divider (`G_I2C_FREQ` as a **maximum**) |
 
@@ -232,7 +232,7 @@ Deliberately **no FSM**: a load counter plus the SCL edge detector is all a byte
 | 8 | Reusable converters: P2S/S2P gained `G_MSB_FIRST` (default `false` — UART behaviour unchanged) | ✅ |
 | 9 | Reset: active-low `rst_n`, synchronous; board-level reset synchronizer still to add | ✅ / 🚧 |
 | 10 | Every module output is FF-driven (registered outputs at the module boundaries); 1-clk pulses for all the handshakes | ✅ |
-| 11 | `I2C_DUT` board wrapper: 4-pin interface, internal stimulus FSM (write 0xA8 → Sr → read 0xAA → write 0xEE loop), oscilloscope/logic-analyzer friendly | ✅ |
+| 11 | `../I2C_DUT` board wrapper: 4-pin interface, internal stimulus FSM (write 0xA8 → Sr → read 0xAA → write 0xEE loop), oscilloscope/logic-analyzer friendly | ✅ |
 | 12 | Language: VHDL (sim projects run with ModelSim `-2008`; the RTL itself is 93/2002-compatible style) | ✅ |
 
 ---
@@ -241,8 +241,8 @@ Deliberately **no FSM**: a load counter plus the SCL edge detector is all a byte
 
 | TB | Folder | Scope | Status |
 |---|---|---|---|
-| `i2c_tx_tb` | `sim_i2c_tx/` | bytes `A5`, `3C` (stretched cell 5) and `81` back-to-back: MSB-first order, exactly one shift per fall, `byte_done` on the 9th fall, busy alignment, idle-cell immunity | ✅ PASS |
-| `i2c_rx_tb` | `sim_i2c_rx/` | `A5` then `3C` rebuilt MSB first, one `byte_done` per byte, ACK cell does not corrupt the byte, re-arm | ✅ PASS |
+| `i2c_tx_tb` | `../sim_i2c_tx/` | bytes `A5`, `3C` (stretched cell 5) and `81` back-to-back: MSB-first order, exactly one shift per fall, `byte_done` on the 9th fall, busy alignment, idle-cell immunity | ✅ PASS |
+| `i2c_rx_tb` | `../sim_i2c_rx/` | `A5` then `3C` rebuilt MSB first, one `byte_done` per byte, ACK cell does not corrupt the byte, re-arm | ✅ PASS |
 | `i2c_master_tb` | `sim_i2c_master/` | write to 0x68, data 0xA5, ACKing slave; 18 captured SDA bits at the SCL rises (addr + ACK + data + ACK) | ✅ PASS |
 | `i2c_master_read_tb` | `sim_i2c_master/` | public read output: bytes 0x65 / 0x96, output held during the address phase, reset behaviour | ✅ PASS |
 | `i2c_master_stretch_tb` | `sim_i2c_master/` | clock stretching: slave holds SCL through the address-ACK cell + fixed window; master never raises SCL, stretched ACK sampled, byte 0x2D received | ✅ PASS |
@@ -257,7 +257,7 @@ Run notes:
 - The four `sim_i2c_master/` + `sim_i2c_freq/` runs are head-less: `vsim -c -do sim_run.do` (prints the PASS/FAIL verdict, `quit -code` on error).
 - Re-verified live on 2026-09-20: `i2c_tx_tb`, `i2c_rx_tb` and both `i2c_master_freq_tb` configurations — 0 errors, 0 warnings; the five master-level runs show **0 errors** in `run_stdout.log`.
 
-**Quartus Analysis & Elaboration:** clean for the main project (`I2C_Master.qsf`, all 6 files) and for the `I2C_DUT/` sub-project (same device, `TOP_LEVEL_ENTITY = I2C_DUT`).
+**Quartus Analysis & Elaboration:** clean for the main project (`I2C_Master.qsf`, all 6 files) and for the `../I2C_DUT/` sub-project (same device, `TOP_LEVEL_ENTITY = I2C_DUT`).
 
 ---
 
@@ -293,6 +293,7 @@ Built from the git history of the `I2C/` folder (oldest first).
 | 0.12 | 2026-09-19 | `e4ddbe8` | Protocol fixes (see the `.before_protocol_fix.bak` backups) |
 | 0.13 | 2026-09-19 | `6261e82` | `I2C_DUT` board wrapper added to verify the master on the bench |
 | 1.0 | 2026-09-20 | `9bf01e0` | **I2C master verified**: full TB suite green (write / read / stretch / multibyte / Sr + 10 stretches / freq), live re-run of TX/RX/freq — 0 errors, 0 warnings |
+| 1.1 | 2026-09-23 | (working tree) | **`I2C_Master` promoted to its own subfolder** (`I2C_Master/`), mirroring `I2C_Slave/`: master source, Quartus project (qpf/qsf/qws), simulation folders (`sim_i2c_master/` + `sim_i2c_freq/`) and architecture README co-located; shared components copied in for project self-containment; `I2C_Slave` integration-test path updated to `../../I2C_Master/I2C_Master.vhd` |
 
 
 

@@ -30,7 +30,7 @@ simulation/
 *.vhd.bak
 
 # Temporary debug testbenches
-I2C/tmpack_tb.vhd
+I2C/I2C_Master/tmpack_tb.vhd
 
 # OS files
 Thumbs.db

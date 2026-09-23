@@ -7,7 +7,8 @@ onerror {quit -code 1 -f}
 onbreak {quit -code 1 -f}
 
 # Always compile into a clean local library. The slave RTL lives one folder up;
-# the controller the integration testbench uses is one further up (I2C/).
+# the controller the integration testbench uses is in the I2C_Master/ subfolder,
+# two folders up (../../I2C_Master/I2C_Master.vhd).
 if {[file exists work/_info]} { vdel -lib work -all }
 vlib work
 
@@ -20,7 +21,7 @@ vcom -quiet ../start_stop_detect.vhd
 vcom -quiet ../scl_stretch.vhd
 vcom -quiet ../I2C_Slave.vhd
 vcom -quiet ../../clock_div.vhd
-vcom -quiet ../../I2C_Master.vhd
+vcom -quiet ../../I2C_Master/I2C_Master.vhd
 vcom -quiet i2c_slave_tb.vhd
 vcom -quiet i2c_slave_master_tb.vhd
 

@@ -320,7 +320,7 @@ details in the master document, §5.
 Run notes:
 
 - Head-less flow from inside `sim_i2c_slave/`: `vsim -c -do sim_run.do` —
-  compiles the RTL from the parent folder plus `../../I2C_Master.vhd` for the
+  compiles the RTL from the parent folder plus `../../I2C_Master/I2C_Master.vhd` for the
   integration TB, runs all three configurations, prints the PASS/FAIL verdict
   and exits with a proper code (`onerror {quit -code 1}`).
 - All assertions are self-checking (frame contents, `rx_valid`/`tx_done`

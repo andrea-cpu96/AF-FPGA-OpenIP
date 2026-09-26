@@ -3,6 +3,7 @@
 > **Living document** — updated as the design progresses.
 > Target device: Intel Cyclone IV E **EP4CE6E22C8** · Quartus Prime **20.1.0 Lite**
 > Top-level entity: `I2C_Slave` (`I2C_Slave.vhd`) — **implemented and verified** (RTL complete, TB suite 3/3 green, Analysis & Elaboration clean)
+> Board DUT wrapper: `I2C_Slave_DUT` in its own project (`../I2C_Slave_DUT/`) — **implemented and verified** (4-pin interface, `0xAA` command → `0xEE` reply dialogue, DUT TB suite 2/2 green)
 
 ---
 
@@ -70,6 +71,12 @@ I2C_Slave (top level: transaction FSM + bus framing + host handshakes)
                                         SCL: pull-down (stretch only) / release
 ```
 
+The board-level sub-project (`../I2C_Slave_DUT/`, §2.3) wraps exactly this
+hierarchy in `I2C_Slave_DUT`: the slave is used **unmodified**, an extra dialogue
+FSM sits above the byte-stream interface (`0xAA` command written by an external
+master → `0xEE` read back) and only `clk`, `rst_n`, `sda` and `scl` leave the
+device — see §2.3 for the file/simulation map.
+
 ### 1.3 The ACK cell: why the FSM has `*_OPEN` states
 
 Per byte the bus carries 8 data bit cells (the transmitter changes SDA while
@@ -114,6 +121,7 @@ period on the slave side.
 | `serial_to_parallel` | `I2C_RX` | N-bit shift register, `G_MSB_FIRST = true` | ✅ |
 | `I2C_TX` | `I2C_Slave` | Byte serialiser, MSB first, paced on SCL falling edges | ✅ |
 | `parallel_to_serial` | `I2C_TX` | N-bit load/shift register, `G_MSB_FIRST = true` | ✅ |
+| `I2C_Slave_DUT` | — (separate project `../I2C_Slave_DUT/`) | Board wrapper: 4-pin interface + command/reply dialogue FSM (`0xAA` written → `0xEE` read back) for external controllers and scope/LA probes | ✅ |
 
 > **Reuse note** — `sync_2ff`, `I2C_TX`, `I2C_RX`, `parallel_to_serial` and
 > `serial_to_parallel` already existed in the repository; this folder keeps its
@@ -151,8 +159,23 @@ All eight RTL files are registered in `I2C_Slave.qsf`:
 
 Both testbenches are simulation-only and are **not** registered in
 `I2C_Slave.qsf`.
-Both testbenches are simulation-only and are **not** registered in
-`I2C_Slave.qsf`.
+
+### 2.3 Board DUT sub-project — `../I2C_Slave_DUT/`
+
+Separate Quartus project (`../I2C_Slave_DUT/I2C_Slave_DUT.qsf`, same device
+`EP4CE6E22C8`, `TOP_LEVEL_ENTITY = I2C_Slave_DUT`) that puts the target on the
+bench: the FPGA plays the slave, the controller is **external** and only the two
+bus wires (plus `clk`/`rst_n`) leave the device.
+
+| File | Content |
+|---|---|
+| `I2C_Slave_DUT.vhd` | Top-level wrapper: 4-pin interface (`clk`, `rst_n`, `sda`, `scl`) + dialogue FSM — `0xAA` written by the master arms the reply, the next read answers `0xEE`, reads before the command answer `0x00`, and the reply is re-armed once the frame closes |
+| `I2C_Slave.vhd`, `sync_2ff.vhd`, `start_stop_detect.vhd`, `scl_stretch.vhd`, `I2C_TX.vhd`, `I2C_RX.vhd`, `parallel_to_serial.vhd`, `serial_to_parallel.vhd` | byte-identical copies, so the DUT project builds on its own (the originals in this folder are untouched) |
+| `sim_build/` | `slave_dut_idle_tb.vhd` + `slave_dut_sequence_tb.vhd` (simulation-only files, **not** registered in the DUT `.qsf`) |
+
+Both DUT testbenches use the wrapper through its 4 pins only — no hierarchical
+access to DUT internals — with the real `I2C_Master` (`../I2C_Master/`) as the
+external controller on the shared bus.
 
 ---
 
@@ -316,6 +339,8 @@ details in the master document, §5.
 | `i2c_slave_tb` (`G_STRETCH_CYCLES = 500`) | `sim_i2c_slave/` | Scripted open-drain master BFM: write frame, read frame, foreign address (NACK + ignore), repeated-START write→read; exact clock-stretch accounting on every ACK cell | ✅ PASS |
 | `i2c_slave_tb` (`G_STRETCH_CYCLES = 0`) | `sim_i2c_slave/` | Same suite with the feature compiled out — proves the `0` path and that no stretch logic interferes | ✅ PASS |
 | `i2c_slave_master_tb` | `sim_i2c_slave/` | Integration with the **real `I2C_Master`** on one shared bus: write 2 bytes, write-pointer → Sr → read 2 bytes, foreign address; stretching enabled end-to-end | ✅ PASS |
+| `slave_dut_sequence_tb` | `../I2C_Slave_DUT/sim_build/` | Board DUT (`I2C_Slave_DUT`, 4 pins) with the real `I2C_Master` as the **external** controller: read before the command → `0x00`, write `0xAA` → read `0xEE`, one-shot reply, `0xAA` + Sr + read 2 → `0xEE`,`0xEE`, foreign address ignored, dialogue repeats; per-frame stretch accounting measured from the bus (19 holds = every ACK cell the DUT took part in, 0 on the foreign frame) | ✅ PASS |
+| `slave_dut_idle_tb` | `../I2C_Slave_DUT/sim_build/` | Power-up / idle guard: with nobody addressing it the DUT never drives `sda`/`scl` — also through reset and a mid-run reset pulse | ✅ PASS |
 
 Run notes:
 
@@ -331,9 +356,25 @@ Run notes:
 - The two component testbenches for the new IPs are green too:
   `Start_Stop_Detect/sim_start_stop_detect` and `Scl_Stretch/sim_scl_stretch`
   (`vsim -c -do sim_run.do` each).
+- DUT suite from inside `../I2C_Slave_DUT/sim_build/`: `vsim -c -do sim_run.do`
+  (both DUT TBs in one session), or `idle_run.do` / `sequence_run.do`
+  individually. Those TBs reach the wrapper through its **4 pins only** and use
+  the real `I2C_Master` (`../../I2C_Master/`) as the external controller, so they
+  reproduce exactly what a bench controller puts on the bus. The stretch
+  measurement there is made on SCL: a low phase longer than 400 `clk` is one ACK
+  cell the DUT stretched (250 `clk` plain vs ~506 `clk` stretched; the ~500 `clk`
+  START phase is detected separately and excluded).
+- **Re-verified live on 2026-09-24:** DUT suite green — 0 errors, 0 warnings
+  each (`4-pin I2C_Slave_DUT releases both lines and never drives an
+  un-addressed bus`, `I2C_Slave_DUT dialogue verified on the bus (0xAA written,
+  0xEE read back)`), with 19 stretch holds counted = every ACK cell the DUT took
+  part in and none on the foreign frame.
 
 **Quartus Analysis & Elaboration:** clean for `I2C_Slave.qsf` (all 8 files,
-top-level `I2C_Slave`, device EP4CE6E22C8) — **0 errors, 0 warnings**.
+top-level `I2C_Slave`, device EP4CE6E22C8) — **0 errors, 0 warnings**. Same for
+the DUT project (`../I2C_Slave_DUT/I2C_Slave_DUT.qsf`, 9 files, top-level
+`I2C_Slave_DUT`, same device and pin-out as `I2C_DUT`) — **0 errors,
+0 warnings**, re-run live on 2026-09-24.
 
 ---
 
@@ -343,8 +384,12 @@ top-level `I2C_Slave`, device EP4CE6E22C8) — **0 errors, 0 warnings**.
   intended consumer of the repeated-START register-pointer idiom).
 - **SDC constraints**: `set_false_path` SDA/SCL → first sync FFs,
   `set_output_delay` on the open-drain pins; then Fitter + timing sign-off.
-- **Board wrapper** (`I2C_DUT`-style) with an on-chip register file, to
-  exercise the slave against the existing master on hardware.
+- **Board wrapper** (`I2C_DUT`-style) — **done**, see §2.3
+  (`../I2C_Slave_DUT/`, 4-pin interface + `0xAA`/`0xEE` dialogue, DUT TBs green).
+  Still open on that path: an **on-chip register file** (or small FIFO) in the
+  wrapper, so the byte stream becomes an addressable register map — the intended
+  consumer of the repeated-START register-pointer idiom — plus SDC constraints
+  for the board-level build.
 - **Fast-mode (400 kHz)**: relax the oversampling assert accordingly and
   re-check the ACK-cell stretch budget.
 - **General call / 10-bit addressing** if a target device needs it.
@@ -353,6 +398,15 @@ top-level `I2C_Slave`, device EP4CE6E22C8) — **0 errors, 0 warnings**.
 
 ## 10. Changelog
 
+- **2026-09-24** — **Board DUT sub-project `../I2C_Slave_DUT/`**: 4-pin
+  top-level wrapper (`I2C_Slave_DUT`) on top of the slave with an on-chip
+  dialogue FSM — an external master writes the `0xAA` command and reads `0xEE`
+  back (`0x00` before the command, the reply is re-armed after each frame); own
+  Quartus project (`.qpf`/`.qsf`, same device and pin-out as `I2C_DUT`, all 8
+  slave files copied in) and `sim_build/` with `slave_dut_idle_tb` +
+  `slave_dut_sequence_tb` (the real `I2C_Master` as the **external** controller,
+  black box through the 4 pins, per-frame clock-stretch accounting) — 2/2 green,
+  0 errors / 0 warnings.
 - **2026-09-22** — Initial release: `I2C_Slave` FSM (9 states) with address
   filtering, clock stretching (`scl_stretch`) and repeated START
   (`start_stop_detect`); copied reuse of `sync_2ff`/`I2C_TX`/`I2C_RX`/
